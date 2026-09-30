@@ -118,6 +118,13 @@ The sun in the top-left corner switches the site to night mode (it becomes a moo
 
 On a visitor's first load, an ivory screen counts `001%` → `100%` in stretched Times New Roman (about 4 seconds), then the site fades in. It plays once per browser session. Speed: `stepDelay` in `runLoader` (`public/js/app.js`). Size and stretch: `.loader__count` in `public/css/style.css`.
 
+## Publishing
+
+The live site is published by GitHub Pages at https://zaichrista.github.io/The-Portfolio/.
+`.github/workflows/pages.yml` rebuilds and republishes it automatically every time `main`
+changes, so publishing is just merging into `main`. Progress shows under the repo's
+**Actions** tab.
+
 ## Static build (no server)
 
 ```bash
