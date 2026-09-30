@@ -1,6 +1,17 @@
 # Zaira Christa: Portfolio
 
-A no-scroll portfolio. Every page is one of the original SVG designs, drawn to fill the window exactly, with the menu, projects, CV and close ✕ made clickable.
+A portfolio built directly from the original SVG designs. Each design is cut into pieces (title, menu words, projects, disciplines…) and rebuilt as accessible HTML, keeping the original outlined lettering.
+
+## Two layouts, one page
+
+- **Large landscape screens** (at least 900 × 600 and wider than tall): the design exactly, stretched to the window, no scrolling. Very wide screens stop stretching at 2.2 : 1.
+- **Phones, portrait tablets and zoomed-in browsers**: the same pieces stack into a readable column. Lettering is scaled evenly (never squashed), paragraphs become real Times New Roman condensed to match the design, and photos keep their shape. These pages scroll when the content needs it.
+
+The switch point is the media query at the top of `public/css/style.css`.
+
+## Accessibility
+
+Real headings, links, buttons and lists; every drawn word has a text equivalent for screen readers; visible keyboard focus; Esc clears a discipline or closes a project; photos have alt text; motion stops for people who ask for reduced motion; nothing scrolls sideways at 320px wide.
 
 ## Run it
 
@@ -25,13 +36,18 @@ To change a page's design, export a new SVG from Illustrator and replace the fil
 
 - Menu: `menu-home`, `menu-about`, `menu-work`
 - Home: `home-cv` (links to your CV)
-- Work: `discipline-thinking`, `discipline-strategy`, `discipline-fashion-design`, `discipline-graphic-design`, `discipline-social-media`, `discipline-writing`, plus one group per project (e.g. `Void_Studios`, `Muni`)
+- About: the photo is the `<image>`; lettering on the right half is the title, on the left half the body
+- Work: `Work_page` (title), `discipline-thinking`, `discipline-strategy`, `discipline-fashion-design`, `discipline-graphic-design`, `discipline-social-media`, `discipline-writing`, plus one group per project (e.g. `Void_Studios`, `Muni`)
 - Project pages: `close-button`, `media-primary`, `media-secondary`
+
+## Page copy
+
+The words drawn in the SVGs are also written out in `data/site.json` under `pages` (and each discipline's `note`). That text is what phones show for paragraphs and what screen readers read, so **when you change wording in a design, change it there too**.
 
 ## Adding images to a project
 
 1. Put the files in `public/assets/projects/<project>/`.
-2. List them in `data/projects.json`:
+2. List them in `data/site.json`:
 
 ```json
 {
@@ -54,7 +70,7 @@ With no media listed, the black placeholders show.
 
 ## Linking disciplines to projects
 
-In `data/projects.json`, add project slugs to a discipline:
+In `data/site.json`, add project slugs to a discipline:
 
 ```json
 { "id": "strategy", "label": "Strategy", "projects": ["void-studios", "zc-studios", "the-reach-brasserie"] }
@@ -101,7 +117,7 @@ Packs the whole site (pages, data, images, code) into one file, `dist/index.html
 
 ```
 server.js              Express server: pages, /api/site, /api/projects/:slug, /cv
-data/projects.json     Projects, their images, and discipline links
+data/site.json     Projects, their images, and discipline links
 public/index.html      The page shell
 public/css/style.css   Stretch, hover, blur, gallery
 public/js/app.js       Loads each SVG and makes it interactive

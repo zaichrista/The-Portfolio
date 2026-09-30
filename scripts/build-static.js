@@ -24,7 +24,7 @@ function inlineAsset(url) {
 const inlineAssetsIn = (text) => text.replace(/\/assets\/[^"')\s]+/g, inlineAsset);
 
 // Project data, with any image paths inlined.
-const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'projects.json'), 'utf8'));
+const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'site.json'), 'utf8'));
 for (const p of data.projects) {
   if (p.preview) p.preview = inlineAsset(p.preview);
   for (const m of p.media || []) if (m.src) m.src = inlineAsset(m.src);

@@ -1,21 +1,32 @@
 /* ==========================================================================
    Zaira Christa: portfolio
-   Loads each page's SVG design into the stage and wires up the parts
-   that are clickable (menu, projects, close ✕, CV) using the SVG ids.
+
+   Each page's SVG design is cut into "blocks" (the title, each menu word,
+   each project, each discipline…) and rebuilt as ordinary, accessible HTML:
+   headings, links, buttons, lists, real paragraphs. The artwork inside each
+   block is the original outlined lettering, untouched.
+
+   style.css then lays the same blocks out two ways:
+   - Canvas (large, landscape screens): every block sits at its exact spot
+     in the design, stretched with the window. No scrolling.
+   - Flow (phones, portrait tablets, zoomed-in browsers): blocks stack into
+     a readable column, each scaled in proportion so nothing is squashed.
    ========================================================================== */
 (() => {
   const SVG_NS = 'http://www.w3.org/2000/svg';
+  const XLINK_NS = 'http://www.w3.org/1999/xlink';
   const stage = document.getElementById('stage');
   const svgCache = new Map();
+  let siteData = null;
+  let renderToken = 0;
+  let pageAbort = null;
+  const pageSignal = () => pageAbort.signal;
+
   // Set by scripts/build-static.js: the whole site packed into one file,
   // with no server, so pages are switched in memory instead of by URL.
   const STATIC = window.PORTFOLIO_STATIC || null;
   let staticPath = '/';
   const currentPath = () => (STATIC ? staticPath : location.pathname);
-  let siteData = null;
-  let renderToken = 0;
-  let pageAbort = null;
-  const pageSignal = () => pageAbort.signal;
 
   // ---- Routes -------------------------------------------------------------
   function matchRoute(pathname) {
@@ -51,279 +62,458 @@
     return svgCache.get(url);
   }
 
-  async function buildSvg(url) {
+  // ---- Small DOM helper -----------------------------------------------------
+  function h(tag, attrs = {}, children = []) {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'text') el.textContent = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of [].concat(children)) if (c) el.append(c);
+    return el;
+  }
+
+  const srText = (text) => h('span', { class: 'sr-only', text });
+
+  // ---- Artwork: load a design and cut it into blocks -----------------------
+  // The SVG is drawn off-screen at full size so every piece can be measured.
+  async function loadArtwork(url) {
     const text = await getSvgText(url);
     const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
     const svg = document.importNode(doc.documentElement, true);
     svg.removeAttribute('id');
-    svg.removeAttribute('width');
-    svg.removeAttribute('height');
-    // Stretch the artwork to whatever box the stage is (see style.css).
+    const vb = svg.viewBox.baseVal;
+    svg.setAttribute('width', vb.width);
+    svg.setAttribute('height', vb.height);
+    const measure = h('div', { class: 'measure', 'aria-hidden': 'true' }, [svg]);
+    document.body.appendChild(measure);
+    return {
+      svg,
+      vb: { x: vb.x, y: vb.y, w: vb.width, h: vb.height },
+      byId: (id) => svg.querySelector(`[id="${id}"]`),
+      dispose: () => measure.remove(),
+    };
+  }
+
+  function unionBox(boxes) {
+    const x = Math.min(...boxes.map((b) => b.x));
+    const y = Math.min(...boxes.map((b) => b.y));
+    const r = Math.max(...boxes.map((b) => b.x + b.w));
+    const b = Math.max(...boxes.map((bx) => bx.y + bx.h));
+    return { x, y, w: r - x, h: b - y };
+  }
+
+  function measureNodes(nodes, pad = 0) {
+    const u = unionBox(nodes.map((n) => {
+      const b = n.getBBox();
+      return { x: b.x, y: b.y, w: b.width, h: b.height };
+    }));
+    return { x: u.x - pad, y: u.y - pad, w: u.w + pad * 2, h: u.h + pad * 2 };
+  }
+
+  // Where a block sits in the design (used by the canvas layout) and its
+  // proportions (used by the flow layout).
+  function placeAt(el, box, A) {
+    el.style.setProperty('--x', box.x - A.vb.x);
+    el.style.setProperty('--y', box.y - A.vb.y);
+    el.style.setProperty('--w', box.w);
+    el.style.setProperty('--h', box.h);
+    el.box = box;
+  }
+
+  function artFor(nodes, box) {
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'art');
+    svg.setAttribute('viewBox', `${box.x} ${box.y} ${box.w} ${box.h}`);
     svg.setAttribute('preserveAspectRatio', 'none');
-    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    for (const n of nodes) svg.appendChild(n); // moves the original artwork
     return svg;
   }
 
-  // ---- SVG helpers ----------------------------------------------------------
-  // A transparent box behind a group so the whole label is hoverable,
-  // not just the ink of the letters.
-  function addHitArea(group, pad = 4) {
-    const box = group.getBBox();
-    const rect = document.createElementNS(SVG_NS, 'rect');
-    rect.setAttribute('class', 'hit');
-    rect.setAttribute('x', box.x - pad);
-    rect.setAttribute('y', box.y - pad);
-    rect.setAttribute('width', box.width + pad * 2);
-    rect.setAttribute('height', box.height + pad * 2);
-    group.insertBefore(rect, group.firstChild);
+  // An HTML element holding a piece of the design.
+  function makeBlock(A, tag, nodes, { pad = 2, className = '', label = '', attrs = {} } = {}) {
+    nodes = nodes.filter(Boolean);
+    if (!nodes.length) return null;
+    const box = measureNodes(nodes, pad);
+    const el = h(tag, { class: `block ${className}`.trim(), ...attrs });
+    placeAt(el, box, A);
+    if (label) el.appendChild(srText(label));
+    el.appendChild(artFor(nodes, box));
+    return el;
   }
 
-  // Wraps an SVG group in an <a> so it behaves like a real link
-  // (keyboard, right-click → open in new tab, etc.).
-  function linkGroup(svg, id, href, { className = '', label = '', newTab = false } = {}) {
-    const group = byId(svg, id);
-    if (!group) return null;
-    const a = document.createElementNS(SVG_NS, 'a');
-    a.setAttribute('href', href);
-    if (className) a.setAttribute('class', className);
-    if (label) a.setAttribute('aria-label', label);
-    if (newTab) {
-      a.setAttribute('target', '_blank');
-      a.setAttribute('rel', 'noopener');
+  // Anything in the design not claimed by a block is still drawn on large
+  // screens, so new artwork from Illustrator never silently disappears.
+  const DRAWABLE = 'path,text,line,polyline,polygon,circle,ellipse,rect,image,use';
+  function leftoverBlock(A) {
+    const nodes = [...A.svg.children].filter((c) => c.matches(DRAWABLE) || c.querySelector(DRAWABLE));
+    if (!nodes.length) return null;
+    return makeBlock(A, 'div', nodes, { pad: 0, className: 'canvas-only', attrs: { 'aria-hidden': 'true' } });
+  }
+
+  // Blocks in a list share one scale on small screens (the widest fills the
+  // column), so a list of titles keeps its proportions.
+  function setSharedWidth(container, blocks) {
+    const widths = blocks.filter(Boolean).map((b) => b.box.w);
+    if (widths.length) container.style.setProperty('--ref', Math.max(...widths));
+  }
+
+  // ---- Shared page parts --------------------------------------------------
+  function mainMenu(A, active) {
+    const nav = h('nav', { class: 'site-nav', 'aria-label': 'Main' });
+    for (const [id, href, label, page] of [
+      ['menu-home', '/', 'Home', 'home'],
+      ['menu-about', '/about', 'About', 'about'],
+      ['menu-work', '/work', 'Work', 'work'],
+    ]) {
+      const a = makeBlock(A, 'a', [A.byId(id)], {
+        pad: 6,
+        className: 'menu-link',
+        label,
+        attrs: { href, 'aria-current': page === active ? 'page' : null },
+      });
+      if (a) nav.appendChild(a);
     }
-    group.parentNode.insertBefore(a, group);
-    a.appendChild(group);
-    addHitArea(group);
-    return a;
+    setSharedWidth(nav, [...nav.children]);
+    return h('header', { class: 'site-header' }, [nav]);
   }
 
-  function byId(svg, id) {
-    return svg.querySelector(`[id="${id}"]`);
+  const heading = (A, node, label, className) =>
+    makeBlock(A, 'h1', [node], { className: `page-title ${className}`, label, attrs: { tabindex: '-1' } });
+
+  // ---- Home ---------------------------------------------------------------
+  function buildHome(A, data) {
+    const copy = data.pages.home;
+    const header = mainMenu(A, 'home');
+
+    const title = heading(A, A.byId('home-title'), copy.title, 'home-title');
+    const taglineArt = makeBlock(A, 'div', [A.byId('home-tagline')], {
+      className: 'home-tagline canvas-only', attrs: { 'aria-hidden': 'true' },
+    });
+    const tagline = h('div', { class: 'flow-text condensed-clip' }, [
+      h('p', { class: 'condensed home-tagline-text' }, copy.tagline.flatMap((line, i) => (i ? [h('br'), line] : [line]))),
+    ]);
+
+    const prompt = makeBlock(A, 'p', [A.byId('home-cv-prompt')], { className: 'home-cv-prompt', label: copy.cvPrompt });
+    const hasCv = !STATIC || STATIC.cv;
+    const cv = makeBlock(A, hasCv ? 'a' : 'div', [A.byId('home-cv')], {
+      pad: 4,
+      className: 'cv-link',
+      label: hasCv ? 'CV (opens in a new tab)' : '',
+      attrs: hasCv
+        ? { href: STATIC ? STATIC.cv : '/cv', target: '_blank', rel: 'noopener' }
+        : { 'aria-hidden': 'true' },
+    });
+
+    const main = h('main', { class: 'page-main', id: 'main' }, [
+      h('div', { class: 'home-intro' }, [title, taglineArt, tagline]),
+      h('div', { class: 'home-cv-row' }, [prompt, cv]),
+      leftoverBlock(A),
+    ]);
+    return [header, main];
   }
 
-  // ---- Page setup -----------------------------------------------------------
-  function setupMenu(svg) {
-    linkGroup(svg, 'menu-home', '/', { className: 'menu-link', label: 'Home' });
-    linkGroup(svg, 'menu-about', '/about', { className: 'menu-link', label: 'About' });
-    linkGroup(svg, 'menu-work', '/work', { className: 'menu-link', label: 'Work' });
+  // ---- About --------------------------------------------------------------
+  function buildAbout(A, data) {
+    const copy = data.pages.about;
+    const header = mainMenu(A, 'about');
+    const page = A.byId('About_page') || A.svg;
+
+    // The photo becomes a real <img>, so it is never stretched.
+    const image = page.querySelector('image');
+    let photo = null;
+    if (image) {
+      const holder = image.parentNode;
+      const box = measureNodes([holder]);
+      photo = h('figure', { class: 'block about-photo' }, [
+        h('img', {
+          src: image.getAttribute('href') || image.getAttributeNS(XLINK_NS, 'href'),
+          alt: copy.photoAlt,
+          width: image.getAttribute('width'),
+          height: image.getAttribute('height'),
+          decoding: 'async',
+        }),
+      ]);
+      placeAt(photo, box, A);
+      holder.remove();
+    }
+
+    // The lettering: title on the right half, body text on the left.
+    const mid = A.vb.x + A.vb.w / 2;
+    const paths = [...page.querySelectorAll('path')];
+    const isRight = (p) => { const b = p.getBBox(); return b.x + b.width / 2 > mid; };
+    const titlePaths = paths.filter(isRight);
+    const bodyPaths = paths.filter((p) => !titlePaths.includes(p));
+
+    const title = makeBlock(A, 'h1', titlePaths, {
+      className: 'page-title about-title', label: copy.title, attrs: { tabindex: '-1' },
+    });
+    const bodyArt = makeBlock(A, 'div', bodyPaths, { className: 'about-body canvas-only', attrs: { 'aria-hidden': 'true' } });
+    const body = h('div', { class: 'flow-text condensed-clip' }, [
+      h('div', { class: 'condensed about-text' }, copy.paragraphs.map((p) => h('p', { text: p }))),
+    ]);
+
+    const main = h('main', { class: 'page-main', id: 'main' }, [title, photo, bodyArt, body, leftoverBlock(A)]);
+    return [header, main];
   }
 
-  function setupHome(svg) {
-    setupMenu(svg);
-    if (!STATIC || STATIC.cv) linkGroup(svg, 'home-cv', STATIC ? STATIC.cv : '/cv', { className: 'cv-link', label: 'CV', newTab: true });
-  }
+  // ---- Work ---------------------------------------------------------------
+  function buildWork(A, data) {
+    const copy = data.pages.work;
+    const header = mainMenu(A, 'work');
+    const title = heading(A, A.byId('Work_page'), copy.title, 'work-title');
 
-  function setupAbout(svg) {
-    setupMenu(svg);
-  }
+    const disciplines = data.disciplines.map((d) => disciplineButton(A, d));
+    const disciplineGrid = h('div', { class: 'discipline-grid' },
+      disciplines.filter(Boolean).map((b) => h('div', { class: 'cell' }, [b])));
+    setSharedWidth(disciplineGrid, disciplines);
 
-  function setupWork(svg, data) {
-    setupMenu(svg);
-
-    // Blur filter used for projects outside a hovered discipline.
-    const defs = document.createElementNS(SVG_NS, 'defs');
-    defs.innerHTML =
-      '<filter id="dim-blur" x="-10%" y="-40%" width="120%" height="180%">' +
-      '<feGaussianBlur stdDeviation="2.5"/></filter>';
-    svg.insertBefore(defs, svg.firstChild);
-
-    const links = new Map();
-    for (const p of data.projects) {
-      const a = linkGroup(svg, p.workLabelId, `/work/${p.slug}`, {
+    const projects = data.projects.map((p) =>
+      makeBlock(A, 'a', [A.byId(p.workLabelId)], {
         className: 'project-link',
         label: p.title,
-      });
-      if (a) links.set(p.slug, a);
+        attrs: { href: `/work/${p.slug}`, 'data-slug': p.slug },
+      }));
+    const list = h('ul', { class: 'project-list' },
+      projects.filter(Boolean).map((a) => h('li', {}, [a])));
+    setSharedWidth(list, projects);
+
+    const preview = buildPreview(A, title, disciplines, projects, header);
+
+    const main = h('main', { class: 'page-main', id: 'main' }, [
+      title,
+      h('section', { class: 'work-disciplines', 'aria-labelledby': 'disciplines-heading' }, [
+        h('h2', { class: 'sr-only', id: 'disciplines-heading', text: 'Disciplines' }),
+        h('p', { class: 'sr-only', text: 'Choose a discipline to highlight its projects.' }),
+        disciplineGrid,
+      ]),
+      h('section', { class: 'work-projects', 'aria-labelledby': 'projects-heading' }, [
+        h('h2', { class: 'sr-only', id: 'projects-heading', text: 'Projects' }),
+        list,
+      ]),
+      h('p', { class: 'sr-only', 'aria-live': 'polite', id: 'filter-status' }),
+      preview,
+      leftoverBlock(A),
+    ]);
+    return [header, main];
+  }
+
+  // A discipline: its name and small subtitle, drawn as in the design on
+  // large screens. On small screens the name stays as drawn and the
+  // subtitle becomes real text, big enough to read.
+  function disciplineButton(A, d) {
+    const group = A.byId(`discipline-${d.id}`);
+    if (!group) return null;
+    const parts = [...group.children].filter((c) => c.tagName === 'g');
+    let name = null;
+    if (parts.length === 2 && d.note) {
+      const [a, b] = parts.map((g) => g.getBBox().height);
+      name = a >= b ? parts[0] : parts[1];
     }
+    const nameBox = name ? measureNodes([name], 2) : null;
+    const nameCopy = name ? name.cloneNode(true) : null;
 
-    setupPreview(svg, data, links);
+    const button = makeBlock(A, 'button', [group], {
+      className: 'discipline',
+      label: d.note ? `${d.label}: ${d.note}` : d.label,
+      attrs: { type: 'button', 'aria-pressed': 'false', 'data-id': d.id },
+    });
+    if (!name) return button;
 
-    // Disciplines: hover previews, click selects (the word turns red).
-    // Projects outside the discipline blur and stop being clickable.
-    // Which projects belong to which discipline lives in data/projects.json.
-    const disciplines = new Map();
+    button.querySelector('.art').classList.add('canvas-only');
+    const nameArt = artFor([nameCopy], nameBox);
+    nameArt.classList.add('art--name', 'flow-only');
+    nameArt.style.setProperty('--aw', nameBox.w);
+    nameArt.style.setProperty('--ah', nameBox.h);
+    button.append(
+      nameArt,
+      h('span', { class: 'condensed-clip flow-only', 'aria-hidden': 'true' }, [
+        h('span', { class: 'condensed discipline-note', text: d.note }),
+      ]),
+    );
+    return button;
+  }
+
+  // The big image box in the middle of the Work page (large screens only):
+  // centred on the title, filling the space between the two columns.
+  function buildPreview(A, title, disciplines, projects, header) {
+    const d = disciplines.filter(Boolean);
+    const p = projects.filter(Boolean);
+    const menu = [...header.querySelectorAll('.block')];
+    if (!title || !d.length || !p.length || !menu.length) return null;
+
+    const GUTTER = 28;
+    const t = title.box;
+    const cx = t.x + t.w / 2;
+    const cy = t.y + t.h / 2;
+    const cols = unionBox(d.map((b) => b.box));
+    const left = cols.x + cols.w + GUTTER;
+    const right = Math.min(...p.map((b) => b.box.x)) - GUTTER;
+    const top = unionBox(menu.map((b) => b.box));
+    const halfW = Math.min(cx - left, right - cx);
+    const halfH = cy - (top.y + top.h + GUTTER);
+
+    const preview = h('div', { class: 'block work-preview canvas-only', 'aria-hidden': 'true' }, [
+      h('img', { alt: '', decoding: 'async' }),
+    ]);
+    placeAt(preview, { x: cx - halfW, y: cy - halfH, w: halfW * 2, h: halfH * 2 }, A);
+    return preview;
+  }
+
+  // ---- Project ------------------------------------------------------------
+  function buildProject(A, data, project) {
+    const close = makeBlock(A, 'a', [A.byId('close-button')], {
+      pad: 8, className: 'close-link', label: 'Back to work', attrs: { href: '/work' },
+    });
+    const header = h('header', { class: 'site-header site-header--project' }, [close]);
+
+    // The title is the first group made only of lettering.
+    const titleGroup = [...A.svg.querySelectorAll('g')].find((g) =>
+      g.children.length && [...g.children].every((c) => c.tagName === 'path') && !g.closest('[id="close-button"]'));
+    const title = heading(A, titleGroup, project.title, 'project-title');
+
+    // Year, roles and description: kept as drawn on large screens, and as
+    // real text (always readable by screen readers) everywhere.
+    const texts = [...A.svg.querySelectorAll('text')];
+    const lines = texts.map((t) => {
+      const spans = [...t.querySelectorAll('tspan')];
+      return (spans.length ? spans : [t]).map((s) => s.textContent.trim()).filter(Boolean);
+    });
+    const [year = [], roles = [], description = []] = lines;
+    const textArt = makeBlock(A, 'div', texts, { pad: 4, className: 'project-text canvas-only', attrs: { 'aria-hidden': 'true' } });
+    const info = h('div', { class: 'flow-text project-info' }, [
+      year.length ? h('p', { class: 'project-year', text: year.join(' ') }) : null,
+      roles.length ? h('ul', { class: 'project-roles', 'aria-label': 'Roles' }, roles.map((r) => h('li', { text: r }))) : null,
+      description.length ? h('p', { class: 'project-description', text: description.join(' ') }) : null,
+    ]);
+
+    const gallery = buildGallery(A, project);
+    const main = h('main', { class: 'page-main', id: 'main' }, [title, textArt, info, gallery, leftoverBlock(A)]);
+    return [header, main];
+  }
+
+  // Replaces the two black boxes with a gallery. On large screens it sits
+  // exactly where they are drawn and scrolls on its own; on small screens
+  // images stack at their natural shape.
+  function buildGallery(A, project) {
+    const primary = A.byId('media-primary');
+    const secondary = A.byId('media-secondary');
+    if (!primary || !secondary) return null;
+
+    const n = (el, a) => parseFloat(el.getAttribute(a));
+    const p = { x: n(primary, 'x'), y: n(primary, 'y'), w: n(primary, 'width'), h: n(primary, 'height') };
+    const s = { x: n(secondary, 'x'), y: n(secondary, 'y'), w: n(secondary, 'width'), h: n(secondary, 'height') };
+    const box = unionBox([p, s]);
+    const total = box.h;
+    primary.remove();
+    secondary.remove();
+
+    const gallery = h('section', { class: 'block gallery', 'aria-label': `${project.title}: images` });
+    placeAt(gallery, box, A);
+    gallery.style.setProperty('--gap', (s.y - (p.y + p.h)) / total);
+
+    const frames = { primary: p, secondary: s };
+    const media = project.media && project.media.length
+      ? project.media
+      : [{ size: 'primary' }, { size: 'secondary' }]; // placeholders
+
+    media.forEach((item, i) => {
+      const key = typeof item.size === 'string' && frames[item.size] ? item.size : (i % 2 === 0 ? 'primary' : 'secondary');
+      const frame = frames[key];
+      const size = typeof item.size === 'number' ? item.size : frame.h / total;
+      const fig = h('figure', { class: 'gallery__item' });
+      fig.style.setProperty('--size', size);
+      fig.style.setProperty('--ratio', `${frame.w} / ${size * total}`);
+      if (item.fit === 'contain') fig.classList.add('gallery__item--contain');
+
+      if (item.src) {
+        fig.classList.add('has-media');
+        const isVideo = /\.(mp4|webm|mov)$/i.test(item.src) || item.src.startsWith('data:video');
+        const media = isVideo
+          ? h('video', { src: item.src, muted: true, loop: true, autoplay: true, playsinline: true, 'aria-label': item.alt || null })
+          : h('img', { src: item.src, alt: item.alt || '', loading: i < 2 ? 'eager' : 'lazy', decoding: 'async' });
+        if (isVideo) media.muted = true;
+        fig.appendChild(media);
+      } else {
+        fig.setAttribute('aria-hidden', 'true');
+      }
+      gallery.appendChild(fig);
+    });
+    return gallery;
+  }
+
+  // ---- Work page behaviour ----------------------------------------------
+  function wireWork(main, data) {
+    const links = new Map([...main.querySelectorAll('.project-link')].map((a) => [a.dataset.slug, a]));
+    const buttons = new Map([...main.querySelectorAll('.discipline')].map((b) => [b.dataset.id, b]));
+    const byId = new Map(data.disciplines.map((d) => [d.id, d]));
+    const status = main.querySelector('#filter-status');
     let selected = null;
 
-    const showDiscipline = (d) => {
+    // Projects outside a discipline blur and stop being clickable.
+    const show = (d) => {
       const mapped = d && d.projects && d.projects.length > 0;
       links.forEach((a, slug) => {
-        const dimmed = mapped && !d.projects.includes(slug);
-        a.classList.toggle('is-dimmed', dimmed);
-        if (dimmed) {
-          a.setAttribute('tabindex', '-1');
+        const off = mapped && !d.projects.includes(slug);
+        a.classList.toggle('is-dimmed', off);
+        if (off) {
           a.setAttribute('aria-disabled', 'true');
+          a.setAttribute('tabindex', '-1');
         } else {
-          a.removeAttribute('tabindex');
           a.removeAttribute('aria-disabled');
+          a.removeAttribute('tabindex');
         }
       });
     };
 
     const select = (d) => {
       selected = d;
-      disciplines.forEach((g, id) => g.classList.toggle('is-active', !!d && id === d.id));
-      showDiscipline(d);
+      buttons.forEach((b, id) => b.setAttribute('aria-pressed', String(!!d && id === d.id)));
+      show(d);
+      if (!status) return;
+      if (!d) status.textContent = 'Showing all projects.';
+      else if (d.projects && d.projects.length) status.textContent = `${d.label}: ${d.projects.length} of ${links.size} projects highlighted.`;
+      else status.textContent = `${d.label} selected.`;
     };
 
-    for (const d of data.disciplines) {
-      const group = byId(svg, `discipline-${d.id}`);
-      if (!group) continue;
-      addHitArea(group);
-      group.classList.add('discipline');
-      group.setAttribute('role', 'button');
-      group.setAttribute('tabindex', '0');
-      group.setAttribute('aria-label', d.label);
-      disciplines.set(d.id, group);
-
-      group.addEventListener('mouseenter', () => showDiscipline(d));
-      group.addEventListener('mouseleave', () => showDiscipline(selected));
-      const toggle = () => select(selected === d ? null : d);
-      group.addEventListener('click', toggle);
-      group.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-      });
-    }
+    buttons.forEach((b, id) => {
+      const d = byId.get(id);
+      b.addEventListener('mouseenter', () => show(d));
+      b.addEventListener('mouseleave', () => show(selected));
+      b.addEventListener('click', () => select(selected === d ? null : d));
+    });
 
     // Clicking empty space or pressing Esc clears the selection.
-    svg.addEventListener('click', (e) => {
+    main.addEventListener('click', (e) => {
       if (!e.target.closest('.discipline, a')) select(null);
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') select(null);
+      if (e.key === 'Escape' && selected) select(null);
     }, { signal: pageSignal() });
-  }
 
-  // Hovering a project shows a large image in the middle of the Work page,
-  // underneath "THIS IS WHAT I DO". The box is centred on the title and
-  // fills the space between the two columns.
-  function setupPreview(svg, data, links) {
-    const title = byId(svg, 'Work_page');
-    const columns = byId(svg, 'Disciplines');
-    const menu = byId(svg, 'Menu_bars');
-    if (!title || !columns || !menu || links.size === 0) return;
-
-    const GUTTER = 28; // design units (the SVG is 1280 × 1024)
-    const t = title.getBBox();
-    const cx = t.x + t.width / 2;
-    const cy = t.y + t.height / 2;
-    const leftEdge = columns.getBBox().x + columns.getBBox().width + GUTTER;
-    const rightEdge = Math.min(...[...links.values()].map((a) => a.getBBox().x)) - GUTTER;
-    const topEdge = menu.getBBox().y + menu.getBBox().height + GUTTER;
-    const halfW = Math.min(cx - leftEdge, rightEdge - cx);
-    const halfH = cy - topEdge;
-
-    const vb = svg.viewBox.baseVal;
-    const preview = document.createElement('div');
-    preview.className = 'work-preview';
-    preview.setAttribute('aria-hidden', 'true');
-    Object.assign(preview.style, {
-      left: `${((cx - halfW - vb.x) / vb.width) * 100}%`,
-      top: `${((cy - halfH - vb.y) / vb.height) * 100}%`,
-      width: `${((halfW * 2) / vb.width) * 100}%`,
-      height: `${((halfH * 2) / vb.height) * 100}%`,
-    });
-    const img = document.createElement('img');
-    img.alt = '';
-    img.decoding = 'async';
-    preview.appendChild(img);
-    stage.insertBefore(preview, svg); // underneath the SVG, so the title sits on top
-
+    // Hovering a project shows its preview in the middle (large screens).
+    const preview = main.querySelector('.work-preview');
+    if (!preview) return;
+    const img = preview.querySelector('img');
     const bySlug = new Map(data.projects.map((p) => [p.slug, p]));
     links.forEach((a, slug) => {
       const src = bySlug.get(slug).preview;
       if (src) new Image().src = src; // preload
-      const show = () => {
+      const hide = () => preview.classList.remove('is-visible');
+      const reveal = () => {
         if (a.classList.contains('is-dimmed')) return hide();
         if (src) img.src = src; else img.removeAttribute('src');
         preview.classList.toggle('has-image', !!src);
         preview.classList.add('is-visible');
       };
-      const hide = () => preview.classList.remove('is-visible');
-      a.addEventListener('mouseenter', show);
+      a.addEventListener('mouseenter', reveal);
       a.addEventListener('mouseleave', hide);
-      a.addEventListener('focus', show);
+      a.addEventListener('focus', reveal);
       a.addEventListener('blur', hide);
     });
-  }
-
-  function setupProject(svg, project) {
-    linkGroup(svg, 'close-button', '/work', { className: 'close-link', label: 'Close' });
-    buildGallery(svg, project);
-  }
-
-  // Replaces the two black boxes in the design with a gallery that sits in
-  // exactly the same place and scrolls on its own.
-  function buildGallery(svg, project) {
-    const primary = byId(svg, 'media-primary');
-    const secondary = byId(svg, 'media-secondary');
-    if (!primary || !secondary) return;
-
-    const n = (el, a) => parseFloat(el.getAttribute(a));
-    const p = { x: n(primary, 'x'), y: n(primary, 'y'), w: n(primary, 'width'), h: n(primary, 'height') };
-    const s = { x: n(secondary, 'x'), y: n(secondary, 'y'), w: n(secondary, 'width'), h: n(secondary, 'height') };
-
-    const vb = svg.viewBox.baseVal;
-    const left = Math.min(p.x, s.x);
-    const top = p.y;
-    const right = Math.max(p.x + p.w, s.x + s.w);
-    const bottom = s.y + s.h;
-    const total = bottom - top;
-
-    const gallery = document.createElement('div');
-    gallery.className = 'gallery';
-    gallery.setAttribute('aria-label', `${project.title}: images`);
-    Object.assign(gallery.style, {
-      left: `${((left - vb.x) / vb.width) * 100}%`,
-      top: `${((top - vb.y) / vb.height) * 100}%`,
-      width: `${((right - left) / vb.width) * 100}%`,
-      height: `${(total / vb.height) * 100}%`,
-    });
-
-    // Sizes from the design, as a share of the gallery's visible height.
-    const sizes = { primary: p.h / total, secondary: s.h / total };
-    const gap = (s.y - (p.y + p.h)) / total;
-
-    const media = project.media && project.media.length
-      ? project.media
-      : [{ size: 'primary' }, { size: 'secondary' }]; // black placeholders
-
-    media.forEach((item, i) => {
-      const fig = document.createElement('figure');
-      fig.className = 'gallery__item';
-      if (item.fit === 'contain') fig.classList.add('gallery__item--contain');
-
-      const size = typeof item.size === 'number'
-        ? item.size
-        : sizes[item.size] ?? (i % 2 === 0 ? sizes.primary : sizes.secondary);
-      fig.style.height = `${size * 100}%`;
-      fig.style.flex = `0 0 ${size * 100}%`;
-
-      if (item.src) {
-        fig.classList.add('has-media');
-        const isVideo = /\.(mp4|webm|mov)$/i.test(item.src);
-        const el = document.createElement(isVideo ? 'video' : 'img');
-        el.src = item.src;
-        if (isVideo) {
-          Object.assign(el, { muted: true, loop: true, autoplay: true, playsInline: true });
-        } else {
-          el.alt = item.alt || '';
-          el.loading = i < 2 ? 'eager' : 'lazy';
-          el.decoding = 'async';
-        }
-        fig.appendChild(el);
-      }
-      gallery.appendChild(fig);
-    });
-
-    Object.assign(gallery.style, {
-      display: 'flex',
-      flexDirection: 'column',
-      rowGap: `${gap * 100}%`,
-    });
-
-    primary.remove();
-    secondary.remove();
-    stage.appendChild(gallery);
   }
 
   // ---- Render -------------------------------------------------------------
@@ -344,25 +534,41 @@
       route.title = `${project.title} · Zaira Christa`;
     }
 
-    const [svg] = await Promise.all([
-      buildSvg(route.svg),
-      animate && stage.childElementCount ? (stage.classList.add('is-leaving'), wait(fadeMs())) : null,
-    ]);
+    const A = await loadArtwork(route.svg);
+    let parts;
+    try {
+      if (route.page === 'home') parts = buildHome(A, data);
+      else if (route.page === 'about') parts = buildAbout(A, data);
+      else if (route.page === 'work') parts = buildWork(A, data);
+      else parts = buildProject(A, data, project);
+    } finally {
+      A.dispose();
+    }
+    const page = h('div', { class: `page page--${route.page}` }, parts);
+    page.style.setProperty('--dw', A.vb.w);
+    page.style.setProperty('--dh', A.vb.h);
+
+    if (animate && stage.childElementCount) {
+      stage.classList.add('is-leaving');
+      await wait(fadeMs());
+    }
     if (token !== renderToken) return; // a newer navigation won
 
     if (pageAbort) pageAbort.abort();
     pageAbort = new AbortController();
-    stage.replaceChildren(svg);
+    stage.replaceChildren(page);
     stage.dataset.page = route.page;
     document.title = route.title;
-    svg.setAttribute('aria-label', route.title);
 
-    if (route.page === 'home') setupHome(svg);
-    else if (route.page === 'about') setupAbout(svg);
-    else if (route.page === 'work') setupWork(svg, data);
-    else if (route.page === 'project') setupProject(svg, project);
+    if (route.page === 'work') wireWork(page, data);
 
     stage.classList.remove('is-leaving');
+    if (animate) {
+      // Start the new page at the top, and tell screen readers where we are.
+      window.scrollTo(0, 0);
+      const h1 = page.querySelector('h1');
+      if (h1) h1.focus({ preventScroll: true });
+    }
   }
 
   function navigate(href, { replace = false } = {}) {
@@ -377,7 +583,7 @@
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a');
     if (!a) return;
-    if (a.classList.contains('is-dimmed')) { e.preventDefault(); return; }
+    if (a.getAttribute('aria-disabled') === 'true') { e.preventDefault(); return; }
     const href = a.getAttribute('href');
     if (!href || !href.startsWith('/') || href === '/cv') return;
     if (a.getAttribute('target') === '_blank') return;
@@ -388,6 +594,10 @@
   });
 
   window.addEventListener('popstate', () => render());
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && stage.dataset.page === 'project') navigate('/work');
+  });
 
   // ---- Day / night ----------------------------------------------------------
   const toggle = document.getElementById('theme-toggle');
@@ -404,10 +614,6 @@
     syncToggle();
   });
   syncToggle();
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && stage.dataset.page === 'project') navigate('/work');
-  });
 
   // ---- First-visit loader ---------------------------------------------------
   // Counts 001% → 100% one step at a time: slow at the ends, quicker in the

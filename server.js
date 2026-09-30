@@ -6,10 +6,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const DATA_FILE = path.join(__dirname, 'data', 'projects.json');
+const DATA_FILE = path.join(__dirname, 'data', 'site.json');
 const CV_FILE = path.join(PUBLIC_DIR, 'assets', 'cv', 'cv.pdf');
 
-// Read on every request so edits to projects.json show up without a restart.
+// Read on every request so edits to data/site.json show up without a restart.
 function loadData() {
   return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 }

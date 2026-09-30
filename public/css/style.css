@@ -1,6 +1,15 @@
 /* ==========================================================================
    Zaira Christa: portfolio
-   Every page is one of the SVG designs, drawn full-window. No page scrolls.
+
+   One set of accessible HTML blocks (see app.js), laid out two ways:
+
+   CANVAS  large landscape screens: each block sits at its exact place in
+           the 1280 × 1024 design, stretched with the window. No scrolling.
+   FLOW    phones, portrait tablets, zoomed-in browsers: the same blocks
+           stack into a readable column, each scaled in proportion.
+
+   The switch point is the media query below, repeated in two places:
+   (min-width: 900px) and (min-height: 600px) and (min-aspect-ratio: 1/1)
    ========================================================================== */
 
 :root {
@@ -9,12 +18,16 @@
   --ink: #000;
   --paper: var(--ivory);
   color-scheme: light;
-  --hover: #ff0000;          /* project titles on hover */
-  --dim-opacity: 0.35;       /* projects outside a hovered discipline */
+  --hover: #ff0000;          /* project titles on hover, selected discipline */
+  --dim-opacity: 0.35;       /* projects outside a selected discipline */
   --preview-placeholder: #dcd8cf;  /* middle box on the Work page until images are added */
   --cv-spin: 40s;            /* one full turn of the CV ring */
   --fade: 180ms;
   --theme-fade: 320ms;
+  --serif: 'Times New Roman', TimesNewRomanPSMT, Tinos, 'Liberation Serif', serif;
+  --condense: 0.78;          /* horizontal squeeze of running text, measured from the About page */
+  --gutter: clamp(18px, 5vw, 40px);
+  --header-h: 64px;
 }
 
 /* Night mode: every colour flips except photographs and videos. */
@@ -32,121 +45,143 @@
 html,
 body {
   margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;          /* no-scroll website */
   background: var(--paper);
   color: var(--ink);
-  overscroll-behavior: none;
+  font-family: var(--serif);
   transition: background-color var(--theme-fade) ease;
 }
 
-/* --------------------------------------------------------------------------
-   Stage: the box the 1280×1024 design is drawn into
-   -------------------------------------------------------------------------- */
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Off-screen copy of a design, used only to measure its pieces. */
+.measure {
+  position: absolute;
+  left: -20000px;
+  top: 0;
+  width: 1280px;
+  height: 1024px;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .stage {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
   opacity: 1;
   transition: opacity var(--fade) ease;
 }
 
 .stage.is-leaving { opacity: 0; }
 
-body[data-fit="contain"] .stage {
-  inset: auto;
-  top: 50%;
-  left: 50%;
-  width: min(100vw, calc(100dvh * 1.25));
-  height: auto;
-  aspect-ratio: 1280 / 1024;
-  transform: translate(-50%, -50%);
+.page h1,
+.page h2,
+.page p,
+.page figure,
+.page ul { margin: 0; padding: 0; }
+.page ul { list-style: none; }
+.page h1:focus { outline: none; }
+
+/* --------------------------------------------------------------------------
+   Blocks: pieces of the original artwork
+   -------------------------------------------------------------------------- */
+.block {
+  display: block;
+  line-height: 0;
+  color: inherit;
+  text-decoration: none;
 }
 
-.stage > svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.art {
   display: block;
+  overflow: visible;
 }
 
 /* The designs are drawn in plain black; these follow the theme instead. */
-.stage svg path:not([fill]),
-.stage svg text {
+.art path:not([fill]),
+.art text,
+.measure text {
   fill: var(--ink);
   transition: fill var(--theme-fade) ease;
 }
 
-.stage svg [stroke="#000"] {
+.art [stroke="#000"] {
   stroke: var(--ink);
   transition: stroke var(--theme-fade) ease;
 }
 
-/* Live text inside the project SVGs */
-.stage svg text {
-  font-family: 'Times New Roman', TimesNewRomanPSMT, Tinos, serif;
+.art text,
+.measure text { font-family: var(--serif); }
+
+button.block {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
 }
 
-/* --------------------------------------------------------------------------
-   Links drawn in the SVG
-   -------------------------------------------------------------------------- */
-.stage svg a { cursor: pointer; outline: none; }
-.stage svg .hit { fill: transparent; }
+a.block,
+button.block { -webkit-tap-highlight-color: transparent; }
 
-.stage svg a path { transition: fill 120ms ease; }
-
-.stage svg a.project-link:hover path,
-.stage svg a.project-link:focus-visible path { fill: var(--hover); }
-
-.stage svg a:focus-visible .hit {
-  stroke: var(--ink);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
+.block:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 1.5px dashed var(--ink);
+  outline-offset: 4px;
 }
 
-/* Close ✕ on project pages */
-.stage svg a.close-link line { transition: stroke 120ms ease; }
-
-/* --------------------------------------------------------------------------
-   Work page: discipline hover
-   -------------------------------------------------------------------------- */
-.stage svg .project-link {
-  transition: opacity 220ms ease;
+/* Hover and selection colour */
+@media (hover: hover) {
+  .project-link:not([aria-disabled="true"]):hover .art path,
+  .close-link:hover .art line { transition-duration: 120ms; }
+  .project-link:not([aria-disabled="true"]):hover .art path { fill: var(--hover); }
+  .theme-toggle:hover { color: var(--hover); }
 }
 
-.stage svg .project-link.is-dimmed {
+.project-link:focus-visible .art path,
+.discipline[aria-pressed="true"] .art path { fill: var(--hover); }
+
+/* Projects outside the selected discipline: blurred, not clickable. */
+.project-link { transition: opacity 220ms ease, filter 220ms ease; }
+
+.project-link[aria-disabled="true"] {
   opacity: var(--dim-opacity);
-  filter: url(#dim-blur);
-  cursor: default;           /* blurred projects can't be clicked (see app.js) */
+  filter: blur(2.5px);
+  cursor: default;
 }
 
-.stage svg .project-link.is-dimmed path { fill: var(--ink); }
+/* Home: the CV ring turns slowly */
+@keyframes cv-spin { to { transform: rotate(360deg); } }
 
-.stage svg .discipline { cursor: pointer; outline: none; }
-.stage svg .discipline path { transition: fill 120ms ease; }
-.stage svg .discipline.is-active path { fill: var(--hover); }
-.stage svg .discipline:focus-visible .hit {
-  stroke: var(--ink);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
+#cv-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cv-spin var(--cv-spin) linear infinite;
 }
 
-/* Big image in the middle of the Work page, under "THIS IS WHAT I DO" */
+/* Work: big image in the middle, under "THIS IS WHAT I DO" */
 .work-preview {
-  position: absolute;
   background: var(--preview-placeholder);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 240ms ease, background-color var(--theme-fade) ease;
   overflow: hidden;
+  transition: opacity 240ms ease, background-color var(--theme-fade) ease;
 }
 
 .work-preview.is-visible { opacity: 1; }
 .work-preview.has-image { background: transparent; }
+.work-preview:not(.has-image) img { display: none; }
 
 .work-preview img {
   display: block;
@@ -155,76 +190,41 @@ body[data-fit="contain"] .stage {
   object-fit: cover;
 }
 
-.work-preview:not(.has-image) img { display: none; }
-
-/* --------------------------------------------------------------------------
-   Home: the CV ring turns slowly
-   -------------------------------------------------------------------------- */
-@keyframes cv-spin { to { transform: rotate(360deg); } }
-
-.stage svg #cv-ring {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: cv-spin var(--cv-spin) linear infinite;
-}
-
-/* --------------------------------------------------------------------------
-   Project page gallery: sits exactly where the black boxes are drawn,
-   and is the only thing on the site that scrolls.
-   -------------------------------------------------------------------------- */
-.gallery {
-  position: absolute;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.gallery::-webkit-scrollbar { display: none; }
-
-.gallery__item {
+/* Photos: never stretched. On large screens they fill their frame by
+   cropping (object-fit: cover); on small screens they keep their shape. */
+.about-photo img,
+.gallery__item img,
+.gallery__item video {
   display: block;
   width: 100%;
-  margin: 0;
-  background: var(--ink);    /* the placeholder box: black by day, white by night */
+}
+
+.gallery__item {
+  width: 100%;
+  background: var(--ink);    /* placeholder box: black by day, white by night */
   overflow: hidden;
   transition: background-color var(--theme-fade) ease;
 }
 
 .gallery__item.has-media { background: transparent; }
 
-.gallery__item img,
-.gallery__item video {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.gallery__item--contain img,
-.gallery__item--contain video {
-  object-fit: contain;
-  background: var(--paper);
+/* Running text (real text, for reading and screen readers) */
+.flow-text {
+  line-height: 1.3;
+  font-family: var(--serif);
 }
 
 /* --------------------------------------------------------------------------
-   Day / night toggle, top-left corner
+   Day / night toggle
    -------------------------------------------------------------------------- */
 .theme-toggle {
   position: fixed;
-  top: 3.2vh;
-  top: 3.2dvh;
-  left: 2.8vw;
-  z-index: 10;
-  width: clamp(16px, 2.2vmin, 26px);
-  height: clamp(16px, 2.2vmin, 26px);
+  z-index: 20;
   padding: 0;
   border: 0;
   background: none;
   color: var(--ink);
   cursor: pointer;
-  transform: translate(-50%, -50%);
   transition: color var(--theme-fade) ease;
 }
 
@@ -255,11 +255,374 @@ body[data-fit="contain"] .stage {
 :root[data-mode="night"] .theme-toggle__sun { opacity: 0; transform: rotate(60deg) scale(0.6); }
 :root[data-mode="night"] .theme-toggle__moon { opacity: 1; transform: none; }
 
-.theme-toggle:hover { color: var(--hover); }
+/* ==========================================================================
+   CANVAS: the design, exactly, stretched to the window. No scrolling.
+   ========================================================================== */
+@media (min-width: 900px) and (min-height: 600px) and (min-aspect-ratio: 1/1) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 
-.theme-toggle:focus-visible {
-  outline: 1px dashed var(--ink);
-  outline-offset: 4px;
+  /* Very wide windows stop stretching at 2.2 : 1 and centre the design. */
+  .stage {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: min(100vw, calc(100dvh * 2.2));
+    transform: translateX(-50%);
+  }
+
+  body[data-fit="contain"] .stage {
+    top: 50%;
+    bottom: auto;
+    width: min(100vw, calc(100dvh * 1.25));
+    aspect-ratio: 1280 / 1024;
+    transform: translate(-50%, -50%);
+  }
+
+  .page {
+    position: absolute;
+    inset: 0;
+  }
+
+  .block {
+    position: absolute;
+    left: calc(var(--x) / var(--dw) * 100%);
+    top: calc(var(--y) / var(--dh) * 100%);
+    width: calc(var(--w) / var(--dw) * 100%);
+    height: calc(var(--h) / var(--dh) * 100%);
+  }
+
+  .block > .art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .flow-only { display: none !important; }
+
+  .flow-text { /* visually hidden here; the drawn version shows instead */
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .about-photo img {
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Project gallery: exactly where the black boxes are drawn; the only
+     thing on large screens that scrolls. */
+  .gallery {
+    display: flex;
+    flex-direction: column;
+    row-gap: calc(var(--gap) * 100%);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .gallery::-webkit-scrollbar { display: none; }
+
+  .gallery__item {
+    flex: 0 0 calc(var(--size) * 100%);
+    height: calc(var(--size) * 100%);
+  }
+
+  .gallery__item img,
+  .gallery__item video {
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .gallery__item--contain img,
+  .gallery__item--contain video {
+    object-fit: contain;
+    background: var(--paper);
+  }
+
+  .theme-toggle {
+    top: 3.2dvh;
+    left: 2.8vw;
+    width: calc(clamp(16px, 2.2vmin, 26px) + 16px);
+    height: calc(clamp(16px, 2.2vmin, 26px) + 16px);
+    padding: 8px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ==========================================================================
+   FLOW: phones, portrait tablets, zoomed-in browsers.
+   Each piece of lettering keeps its proportions; paragraphs are real text.
+   ========================================================================== */
+@media not all and (min-width: 900px) and (min-height: 600px) and (min-aspect-ratio: 1/1) {
+  .canvas-only { display: none !important; }
+
+  .page {
+    max-width: 760px;
+    min-height: 100dvh;
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+    padding-bottom: 56px;
+  }
+
+  /* Lettering: its own shape, scaled evenly. --max caps the scale so small
+     words don't balloon; --ref makes a list share one scale. */
+  .block {
+    position: relative;
+    width: min(100%, calc(var(--w) * var(--max, 1) * 1px));
+  }
+
+  .block > .art {
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--w) / var(--h);
+  }
+
+  /* Header: sun on the left, menu centred, close on the right */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--header-h);
+    margin-inline: calc(var(--gutter) * -1);
+    padding: env(safe-area-inset-top, 0px) 56px 0;
+    background: var(--paper);
+    transition: background-color var(--theme-fade) ease;
+  }
+
+  .site-header--project {
+    justify-content: flex-end;
+    padding-right: calc(var(--gutter) - 12px);
+  }
+
+  .site-nav {
+    display: flex;
+    justify-content: center;
+    gap: clamp(8px, 6vw, 48px);
+  }
+
+  .menu-link {
+    --max: 0.95;
+    padding-block: 12px;     /* 44px touch target */
+    box-sizing: content-box;
+  }
+
+  .close-link {
+    --max: 0.75;
+    padding: 12px;
+    box-sizing: content-box;
+  }
+
+  .theme-toggle {
+    top: calc(env(safe-area-inset-top, 0px) + (var(--header-h) - 44px) / 2);
+    left: max(6px, calc((100vw - 760px) / 2 + var(--gutter) - 12px));
+    width: 44px;
+    height: 44px;
+    padding: 11px;
+  }
+
+  .page-main {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-title { --max: 1; }
+
+  /* Condensed running text: laid out wider, then squeezed back to the
+     column, so it wraps naturally and keeps the stretched look. */
+  .condensed-clip { overflow: clip; }
+
+  .condensed {
+    width: calc(100% / var(--condense));
+    transform: scaleX(var(--condense));
+    transform-origin: 0 0;
+  }
+
+  /* ---- Home -------------------------------------------------------------- */
+  .page--home .page-main {
+    min-height: calc(100dvh - var(--header-h) - 56px);
+    justify-content: space-between;
+    gap: 40px;
+    padding-top: 12px;
+  }
+
+  .home-intro {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    gap: 14px;
+  }
+
+  .home-title { --max: 1.2; }
+
+  .home-tagline-text {
+    font-size: clamp(19px, 1.2vw + 15px, 24px);
+    line-height: 1.2;
+  }
+
+  .home-cv-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px 16px;
+  }
+
+  .home-cv-prompt { --max: 0.85; }
+  .cv-link { --max: 0.8; max-width: 45%; }
+
+  /* ---- About ------------------------------------------------------------- */
+  .page--about .page-main { gap: 20px; padding-top: 12px; }
+
+  .page .about-title {
+    --max: 1.6;
+    margin-left: auto;
+  }
+
+  .about-photo {
+    width: 100%;
+  }
+
+  .about-photo img { height: auto; }
+
+  .about-text {
+    font-size: clamp(20px, 1.4vw + 16px, 24px);
+    line-height: 1.22;
+  }
+
+  .about-text p + p { margin-top: 1em; }
+
+  /* Wider portrait screens: text beside the photo, as in the design */
+  @media (min-width: 640px) {
+    .page--about .page-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 20px clamp(24px, 5vw, 48px);
+    }
+    .page .about-title { grid-column: 2; justify-self: end; }
+    .about-photo { grid-column: 2; grid-row: 2; }
+    .page--about .flow-text { grid-column: 1; grid-row: 2; align-self: center; }
+    .about-text { font-size: clamp(18px, 1vw + 14px, 22px); }
+  }
+
+  /* ---- Work -------------------------------------------------------------- */
+  .page--work .page-main { gap: 36px; padding-top: 16px; }
+
+  .page .work-title {
+    --max: 1.2;
+    margin-inline: auto;
+  }
+
+  .discipline-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 20px;
+  }
+
+  @media (min-width: 600px) {
+    .discipline-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  .discipline-grid .cell {
+    container-type: inline-size;
+    display: flex;
+    align-items: center;
+  }
+
+  .discipline {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: min(calc(var(--w) * 1.25px), calc(var(--w) / var(--ref) * 100cqi));
+    padding-block: 6px;
+    text-align: left;
+  }
+
+  .discipline > .art--name {
+    width: calc(var(--aw) / var(--w) * 100%);
+    aspect-ratio: var(--aw) / var(--ah);
+  }
+
+  .discipline .condensed-clip { display: block; width: 100%; }
+
+  .discipline-note {
+    display: block;
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.15;
+    transition: color 120ms ease;
+  }
+
+  .discipline[aria-pressed="true"] .discipline-note { color: var(--hover); }
+
+  .project-list {
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;   /* right-aligned, as in the design */
+    gap: 6px;
+  }
+
+  .project-list li { display: flex; justify-content: flex-end; width: 100%; }
+
+  .project-link {
+    width: min(calc(var(--w) * 1.15px), calc(var(--w) / var(--ref) * 100cqi));
+    padding-block: 10px;     /* comfortable touch target */
+    box-sizing: content-box;
+  }
+
+  /* ---- Project ----------------------------------------------------------- */
+  .page--project .page-main { gap: 28px; padding-top: 4px; }
+
+  .project-title { --max: 1; }
+
+  .project-info {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px 28px;
+    align-items: start;
+    font-size: clamp(18px, 0.8vw + 15px, 20px);
+  }
+
+  .project-year {
+    font-size: 2em;
+    line-height: 1;
+  }
+
+  .project-roles { line-height: 1.25; }
+
+  .project-description {
+    grid-column: 1 / -1;
+    max-width: 34em;
+    line-height: 1.4;
+  }
+
+  .gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .gallery__item:not(.has-media) { aspect-ratio: var(--ratio); }
+  .gallery__item img,
+  .gallery__item video { height: auto; }
 }
 
 /* --------------------------------------------------------------------------
@@ -281,7 +644,7 @@ body[data-fit="contain"] .stage {
 .loader.is-done { opacity: 0; pointer-events: none; }
 
 .loader__count {
-  font-family: 'Times New Roman', TimesNewRomanPSMT, Tinos, serif;
+  font-family: var(--serif);
   font-size: 14vmin;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -290,11 +653,9 @@ body[data-fit="contain"] .stage {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loader { transition: none; }
-  :root { --theme-fade: 0ms; }
-  :root { --fade: 0ms; }
-  .stage svg a path,
-  .stage svg .project-link,
+  :root { --theme-fade: 0ms; --fade: 0ms; }
+  .loader,
+  .project-link,
   .work-preview { transition: none; }
-  .stage svg #cv-ring { animation: none; }
+  #cv-ring { animation: none; }
 }
