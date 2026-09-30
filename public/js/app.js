@@ -131,6 +131,27 @@
     el.style.setProperty('--w', box.w);
     el.style.setProperty('--h', box.h);
     el.box = box;
+    el.vb = A.vb;
+    anchorTo([el], 'center');
+  }
+
+  // On large screens nothing is stretched: each block scales evenly around
+  // an anchor point, and that point moves with the window. Blocks that
+  // belong together share one anchor, so they stay aligned as a unit.
+  // `where` is 'center', 'left', 'right', 'left-top', 'right-top' (of the
+  // blocks' combined box) or an explicit { x, y } in design units.
+  function anchorTo(blocks, where) {
+    blocks = blocks.filter(Boolean);
+    if (!blocks.length) return;
+    const u = unionBox(blocks.map((b) => b.box));
+    const pt = typeof where === 'object' ? where : {
+      x: where.includes('left') ? u.x : where.includes('right') ? u.x + u.w : u.x + u.w / 2,
+      y: where.includes('top') ? u.y : u.y + u.h / 2,
+    };
+    for (const b of blocks) {
+      b.style.setProperty('--ax', pt.x - b.vb.x);
+      b.style.setProperty('--ay', pt.y - b.vb.y);
+    }
   }
 
   function artFor(nodes, box) {
@@ -189,6 +210,7 @@
       if (a) nav.appendChild(a);
     }
     setSharedWidth(nav, [...nav.children]);
+    anchorTo([...nav.children], 'center');
     return h('header', { class: 'site-header' }, [nav]);
   }
 
@@ -212,12 +234,15 @@
     const hasCv = !STATIC || STATIC.cv;
     const cv = makeBlock(A, hasCv ? 'a' : 'div', [A.byId('home-cv')], {
       pad: 4,
-      className: 'cv-link keep-shape anchor-center',
+      className: 'cv-link',
       label: hasCv ? 'CV (opens in a new tab)' : '',
       attrs: hasCv
         ? { href: STATIC ? STATIC.cv : '/cv', target: '_blank', rel: 'noopener' }
         : { 'aria-hidden': 'true' },
     });
+
+    if (title) anchorTo([title, taglineArt], { x: title.box.x + title.box.w / 2, y: title.box.y + title.box.h / 2 });
+    anchorTo([prompt, cv], 'right');
 
     const main = h('main', { class: 'page-main', id: 'main' }, [
       h('div', { class: 'home-intro' }, [title, taglineArt, tagline]),
@@ -239,7 +264,7 @@
     if (image) {
       const holder = image.parentNode;
       const box = measureNodes([holder]);
-      photo = h('figure', { class: 'block about-photo keep-shape anchor-right' }, [
+      photo = h('figure', { class: 'block about-photo' }, [
         h('img', {
           src: image.getAttribute('href') || image.getAttributeNS(XLINK_NS, 'href'),
           alt: copy.photoAlt,
@@ -266,6 +291,9 @@
     const body = h('div', { class: 'flow-text condensed-clip' }, [
       h('div', { class: 'condensed about-text' }, copy.paragraphs.map((p) => h('p', { text: p }))),
     ]);
+
+    anchorTo([title, photo], 'right-top');
+    anchorTo([bodyArt], 'left');
 
     const main = h('main', { class: 'page-main', id: 'main' }, [title, photo, bodyArt, body, leftoverBlock(A)]);
     return [header, main];
@@ -297,6 +325,7 @@
         copy.classList.add('flow-only');
         link.appendChild(copy);
       }
+      anchorTo([link], 'right');
       return link;
     });
     const list = h('ul', { class: 'project-list' },
@@ -420,7 +449,7 @@
     const halfW = Math.min(cx - left, right - cx);
     const halfH = cy - (top.y + top.h + GUTTER);
 
-    const preview = h('div', { class: 'block work-preview canvas-only', 'aria-hidden': 'true' }, [
+    const preview = h('div', { class: 'block work-preview stretch canvas-only', 'aria-hidden': 'true' }, [
       h('img', { alt: '', decoding: 'async' }),
     ]);
     placeAt(preview, { x: cx - halfW, y: cy - halfH, w: halfW * 2, h: halfH * 2 }, A);
@@ -430,33 +459,69 @@
   // ---- Project ------------------------------------------------------------
   function buildProject(A, data, project) {
     const close = makeBlock(A, 'a', [A.byId('close-button')], {
-      pad: 8, className: 'close-link keep-shape anchor-right', label: 'Back to work', attrs: { href: '/work' },
+      pad: 8, className: 'close-link', label: 'Back to work', attrs: { href: '/work' },
     });
+    anchorTo([close], 'right-top');
     const header = h('header', { class: 'site-header site-header--project' }, [close]);
 
     // The title is the first group made only of lettering.
     const titleGroup = [...A.svg.querySelectorAll('g')].find((g) =>
       g.children.length && [...g.children].every((c) => c.tagName === 'path') && !g.closest('[id="close-button"]'));
     const title = heading(A, titleGroup, project.title, 'project-title');
+    anchorTo([title], 'left-top');
 
-    // Year, roles and description: kept as drawn on large screens, and as
-    // real text (always readable by screen readers) everywhere.
-    const texts = [...A.svg.querySelectorAll('text')];
-    const lines = texts.map((t) => {
-      const spans = [...t.querySelectorAll('tspan')];
-      return (spans.length ? spans : [t]).map((s) => s.textContent.trim()).filter(Boolean);
-    });
-    const [year = [], roles = [], description = []] = lines;
-    const textArt = makeBlock(A, 'div', texts, { pad: 4, className: 'project-text canvas-only keep-shape', attrs: { 'aria-hidden': 'true' } });
-    const info = h('div', { class: 'flow-text project-info' }, [
-      year.length ? h('p', { class: 'project-year', text: year.join(' ') }) : null,
-      roles.length ? h('ul', { class: 'project-roles', 'aria-label': 'Roles' }, roles.map((r) => h('li', { text: r }))) : null,
-      description.length ? h('p', { class: 'project-description', text: description.join(' ') }) : null,
-    ]);
-
+    const info = projectInfo(A, project);
     const gallery = buildGallery(A, project);
-    const main = h('main', { class: 'page-main', id: 'main' }, [title, textArt, info, gallery, leftoverBlock(A)]);
+    anchorTo([gallery], 'right-top');
+
+    const main = h('main', { class: 'page-main', id: 'main' }, [title, info, gallery, leftoverBlock(A)]);
     return [header, main];
+  }
+
+  // Year, roles and description as real text. The words come from
+  // data/site.json (edit them there, and add as much as you like); the
+  // design only decides where they sit and how big they are. Anything
+  // missing from site.json falls back to the text drawn in the SVG.
+  function projectInfo(A, project) {
+    const texts = [...A.svg.querySelectorAll('text')];
+    const drawn = texts.map((t) => {
+      const spans = [...t.querySelectorAll('tspan')];
+      return {
+        box: drawnBox(t),
+        size: parseFloat(t.getAttribute('font-size')) || 20,
+        lines: (spans.length ? spans : [t]).map((sp) => sp.textContent.trim()).filter(Boolean),
+      };
+    });
+    texts.forEach((t) => t.remove());
+    const [yearD, rolesD, descD] = drawn;
+
+    const year = project.year || (yearD ? yearD.lines.join(' ') : '');
+    const roles = project.roles || (rolesD ? rolesD.lines : []);
+    const description = [].concat(project.description || (descD ? descD.lines.join(' ') : []));
+
+    const info = h('div', { class: 'block project-info' });
+    if (!drawn.length) return info;
+
+    const bottom = A.vb.y + A.vb.h - 40;
+    const box = unionBox(drawn.map((d) => d.box));
+    const right = descD ? descD.box.x + descD.box.w + 16 : box.x + box.w;
+    placeAt(info, { x: box.x, y: box.y, w: right - box.x, h: bottom - box.y }, A);
+    anchorTo([info], 'left-top');
+
+    // Each part sits where it is drawn, relative to the info block.
+    const part = (el, d, full) => {
+      if (!d) return el;
+      el.style.setProperty('--ox', d.box.x - box.x);
+      el.style.setProperty('--oy', d.box.y - box.y);
+      el.style.setProperty('--ow', full ? right - d.box.x : d.box.w + 16);
+      el.style.setProperty('--oh', bottom - d.box.y);
+      el.style.setProperty('--fs', d.size);
+      return el;
+    };
+    if (year) info.appendChild(part(h('p', { class: 'project-year', text: year }), yearD));
+    if (roles.length) info.appendChild(part(h('ul', { class: 'project-roles', 'aria-label': 'Roles' }, roles.map((r) => h('li', { text: r }))), rolesD, true));
+    if (description.length) info.appendChild(part(h('div', { class: 'project-description' }, description.map((t) => h('p', { text: t }))), descD, true));
+    return info;
   }
 
   // Replaces the two black boxes with a gallery. On large screens it sits
@@ -475,7 +540,7 @@
     primary.remove();
     secondary.remove();
 
-    const gallery = h('section', { class: 'block gallery keep-shape anchor-right', 'aria-label': `${project.title}: images` });
+    const gallery = h('section', { class: 'block gallery', 'aria-label': `${project.title}: images` });
     placeAt(gallery, box, A);
     gallery.style.setProperty('--gap', (s.y - (p.y + p.h)) / total);
 

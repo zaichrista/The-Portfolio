@@ -4,7 +4,7 @@ A portfolio built directly from the original SVG designs. Each design is cut int
 
 ## Two layouts, one page
 
-- **Large landscape screens** (at least 900 × 600 and wider than tall): the design exactly, stretched to the window, no scrolling. Very wide screens stop stretching at 2.2 : 1.
+- **Large landscape screens** (at least 900 × 600 and wider than tall): the design, spread to fill the window, no scrolling. Nothing is ever stretched out of shape: each piece scales evenly around an anchor point (for example, right-aligned project titles keep their right edge in place), and pieces that belong together move as one. Very wide screens stop spreading at 2.2 : 1.
 - **Phones, portrait tablets and zoomed-in browsers**: the same pieces stack into a readable column. Lettering is scaled evenly (never squashed), paragraphs become real Times New Roman condensed to match the design, and photos keep their shape. These pages scroll when the content needs it.
 
 The switch point is the media query at the top of `public/css/style.css`.
@@ -39,6 +39,24 @@ To change a page's design, export a new SVG from Illustrator and replace the fil
 - About: the photo is the `<image>`; lettering on the right half is the title, on the left half the body
 - Work: `Work_page` (title), `discipline-thinking`, `discipline-strategy`, `discipline-fashion-design`, `discipline-graphic-design`, `discipline-social-media`, `discipline-writing`, plus one group per project (e.g. `Void_Studios`, `Muni`)
 - Project pages: `close-button`, `media-primary`, `media-secondary`
+
+## Editing project text
+
+Each project's year, roles and description live in `data/site.json`, and you can change them or add more:
+
+```json
+{
+  "slug": "muni",
+  "year": "2026",
+  "roles": ["Brand strategy", "Creative direction", "Graphic design", "Visual identity"],
+  "description": [
+    "First paragraph.",
+    "A second paragraph, as long as you like."
+  ]
+}
+```
+
+The design decides where the text sits and how big it is. On large screens a long description scrolls within its space; on phones the page simply gets longer. If a field is removed, the text drawn in the project's SVG is used instead.
 
 ## Page copy
 
