@@ -29,16 +29,27 @@
   ],
 
   "projects": [
-    { "slug": "void-studios",            "title": "Void Studios",            "workLabelId": "Void_Studios",            "preview": "", "media": [] },
-    { "slug": "sonic-anti-intimacy",     "title": "Sonic Anti-Intimacy",     "workLabelId": "Sonic_Anti_Intimacy",     "preview": "", "media": [] },
-    { "slug": "the-oxford-fashion-gala", "title": "The Oxford Fashion Gala", "workLabelId": "The_Oxford_Fashion_Gala", "preview": "", "media": [] },
-    { "slug": "zaira-christa-fw22",      "title": "Zaira Christa FW22",      "workLabelId": "Zaira_Christa_FW22",      "preview": "", "media": [] },
-    { "slug": "zaira-christa-ss23",      "title": "Zaira Christa SS23",      "workLabelId": "Zaira_Christa_SS23",      "preview": "", "media": [] },
-    { "slug": "muni",                    "title": "Muni",                    "workLabelId": "Muni",                    "preview": "", "media": [] },
-    { "slug": "tokyo-drift",             "title": "Tokyo Drift: The Sonic Graffiti of the Tokyoite Underground", "workLabelId": "Tokyo_Drift", "preview": "", "media": [] },
-    { "slug": "zc-studios",              "title": "ZC Studios",              "workLabelId": "ZC_Studios",              "preview": "", "media": [] },
-    { "slug": "the-reach-brasserie",     "title": "The Reach Brasserie",     "workLabelId": "The_Reach_Brasserie",     "preview": "", "media": [] },
-    { "slug": "tagging-the-body",        "title": "Tagging the Body: Sound, Clothing, and Affect in London Clubs", "workLabelId": "Tagging_the_Body", "preview": "", "media": [] },
-    { "slug": "bekaa",                   "title": "Bekaa",                   "workLabelId": "Bekaa",                   "preview": "", "media": [] }
+    { "slug": "void-studios",            "title": "Void Studios",            "workLabelId": "Void_Studios",            "year": "2026", "roles": ["Creative direction", "Brand strategy", "Graphic design", "Art direction"], "description": ["Independent creative studio exploring fashion, culture and visual identity. Conception of the brand world, visual language and creative direction, with a focus on building distinctive identities through research-led strategy, image-making and design."], 
+      "preview": "", "media": [] },
+    { "slug": "sonic-anti-intimacy",     "title": "Sonic Anti-Intimacy",     "workLabelId": "Sonic_Anti_Intimacy",     "year": "2025", "roles": ["Cultural research", "Music research", "Critical theory", "Writing"], "description": ["Research project investigating how sound, technology and contemporary listening practices can create distance rather than intimacy. Development of a critical framework combining music, digital culture and theories of mediated connection."], 
+      "preview": "", "media": [] },
+    { "slug": "the-oxford-fashion-gala", "title": "The Oxford Fashion Gala", "workLabelId": "The_Oxford_Fashion_Gala", "year": "2024", "roles": ["Creative direction", "Fashion production", "Branding", "Event strategy"], "description": ["Student-led fashion event bringing together designers, performers and creative communities in Oxford. Development of the event identity, creative direction and visual communication alongside the coordination and presentation of the final fashion showcase."], 
+      "preview": "", "media": [] },
+    { "slug": "zaira-christa-fw22",      "title": "Zaira Christa FW22",      "workLabelId": "Zaira_Christa_FW22",      "year": "2022", "roles": ["Fashion design", "Creative direction", "Garment development", "Branding"], "description": ["Autumn/Winter fashion collection developed under the Zaira Christa label. Conception of the collection narrative, silhouettes and visual identity, translating a central creative concept into garments, styling and campaign imagery."], 
+      "preview": "", "media": [] },
+    { "slug": "zaira-christa-ss23",      "title": "Zaira Christa SS23",      "workLabelId": "Zaira_Christa_SS23",      "year": "2022", "roles": ["Fashion design", "Creative direction", "Garment development", "Art direction"], "description": ["Spring/Summer collection exploring the evolving visual language of Zaira Christa. Development of the collection from concept and research through garment design, styling and final visual presentation."], 
+      "preview": "", "media": [] },
+    { "slug": "muni",                    "title": "Muni",                    "workLabelId": "Muni",                    "year": "2026", "roles": ["Brand strategy", "Creative direction", "Graphic design", "Visual identity"], "description": ["Brand concept centred on the creation of a coherent and emotionally distinctive visual world. Development of the positioning, identity system and creative direction across typography, imagery and brand communication."], 
+      "preview": "", "media": [] },
+    { "slug": "tokyo-drift",             "title": "Tokyo Drift: The Sonic Graffiti of the Tokyoite Underground", "workLabelId": "Tokyo_Drift", "year": "2025", "roles": ["Ethnographic research", "Music culture", "Cultural strategy", "Writing"], "description": ["Ethnographic research into Tokyo’s underground club culture and nightlife ecosystems. Conducted fieldwork across eight clubs over three weeks, examining how space, music, identity and cultural capital operate within the city’s independent nightlife scene."], 
+      "preview": "", "media": [] },
+    { "slug": "zc-studios",              "title": "ZC Studios",              "workLabelId": "ZC_Studios",              "year": "2026", "roles": ["Brand strategy", "Creative direction", "Design", "Cultural research"], "description": ["Creative practice spanning fashion, branding and cultural strategy. Development of research-led identities, concepts and visual systems designed to connect cultural insight with strong, recognisable creative worlds."], 
+      "preview": "", "media": [] },
+    { "slug": "the-reach-brasserie",     "title": "The Reach Brasserie",     "workLabelId": "The_Reach_Brasserie",     "year": "2026", "roles": ["Brand strategy", "Social media", "Creative direction", "Hospitality marketing"], "description": ["Strategy and creative work for an independent riverside brasserie in London. Development of brand positioning, visual identity and social content alongside competitor research, campaign planning and ongoing refinement of the restaurant’s customer-facing brand."], 
+      "preview": "", "media": [] },
+    { "slug": "tagging-the-body",        "title": "Tagging the Body: Sound, Clothing, and Affect in London Clubs", "workLabelId": "Tagging_the_Body", "year": "2026", "roles": ["Cultural research", "Digital humanities", "Critical theory", "Writing"], "description": ["Dissertation examining the relationship between the body, digital categorisation and cultural meaning. Research into how systems of tagging, classification and digital mediation shape the ways bodies are represented, interpreted and understood."], 
+      "preview": "", "media": [] },
+    { "slug": "bekaa",                   "title": "Bekaa",                   "workLabelId": "Bekaa",                   "year": "2026", "roles": ["Creative direction", "Branding", "Graphic design", "Cultural research"], "description": ["Creative project drawing on cultural references and place to construct a contemporary visual identity. Development of the concept, brand language and art direction, translating research into a cohesive visual world."], 
+      "preview": "", "media": [] }
   ]
 }
