@@ -78,7 +78,11 @@ Save your CV as `public/assets/cv/cv.pdf`. The CV circle on the home page opens 
 
 ## Day / night
 
-The sun in the top-left corner switches the site to night mode (it becomes a moon): black and white swap everywhere, including the empty placeholder boxes. Photos and videos are never inverted. The choice is remembered in the visitor's browser. Night colours are the `:root[data-theme="night"]` block at the top of `public/css/style.css`.
+The sun in the top-left corner switches the site to night mode (it becomes a moon): ivory and off-black swap everywhere, including the empty placeholder boxes. Photos and videos are never inverted. The choice is remembered in the visitor's browser. Night colours are the `:root[data-theme="night"]` block at the top of `public/css/style.css`.
+
+## Loader
+
+On a visitor's first load, an ivory screen counts `001%` → `100%` in stretched Times New Roman (about 4 seconds), then the site fades in. It plays once per browser session. Speed: `stepDelay` in `runLoader` (`public/js/app.js`). Size and stretch: `.loader__count` in `public/css/style.css`.
 
 ## Settings
 

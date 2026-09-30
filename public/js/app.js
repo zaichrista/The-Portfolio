@@ -398,7 +398,36 @@
     if (e.key === 'Escape' && stage.dataset.page === 'project') navigate('/work');
   });
 
-  render({ animate: false }).then(() => {
+  // ---- First-visit loader ---------------------------------------------------
+  // Counts 001% → 100% one step at a time: slow at the ends, quicker in the
+  // middle (about 4 seconds), then the site fades in underneath.
+  function runLoader(siteReady) {
+    const loader = document.getElementById('loader');
+    if (!loader || document.documentElement.dataset.loader === 'skip') return;
+    const count = loader.querySelector('.loader__count');
+    const stepDelay = (n) => 20 + 38 * (1 - Math.sin((Math.PI * n) / 100));
+
+    let n = 1;
+    const tick = async () => {
+      if (n < 100) {
+        n += 1;
+        count.textContent = `${String(n).padStart(3, '0')}%`;
+        loader.setAttribute('aria-valuenow', n);
+        setTimeout(tick, stepDelay(n));
+        return;
+      }
+      await siteReady;
+      await wait(400); // let 100% sit for a beat
+      loader.classList.add('is-done');
+      try { sessionStorage.setItem('loaded', '1'); } catch (e) {}
+      setTimeout(() => loader.remove(), 800);
+    };
+    setTimeout(tick, stepDelay(1));
+  }
+
+  const firstRender = render({ animate: false });
+  runLoader(firstRender.catch(() => {}));
+  firstRender.then(() => {
     // Warm the cache for the main pages so switching is instant.
     ['/svg/home.svg', '/svg/about.svg', '/svg/work.svg'].forEach((u) => getSvgText(u).catch(() => {}));
   });

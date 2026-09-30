@@ -4,11 +4,13 @@
    ========================================================================== */
 
 :root {
+  --ivory: #f4f1ea;
+  --off-black: #0d0d0d;
   --ink: #000;
-  --paper: #fff;
+  --paper: var(--ivory);
   --hover: #ff0000;          /* project titles on hover */
   --dim-opacity: 0.35;       /* projects outside a hovered discipline */
-  --preview-placeholder: #d9d9d9;  /* middle box on the Work page until images are added */
+  --preview-placeholder: #dcd8cf;  /* middle box on the Work page until images are added */
   --cv-spin: 40s;            /* one full turn of the CV ring */
   --fade: 180ms;
   --theme-fade: 320ms;
@@ -17,8 +19,8 @@
 /* Night mode: every colour flips except photographs and videos. */
 :root[data-theme="night"] {
   --ink: #fff;
-  --paper: #000;
-  --preview-placeholder: #262626;
+  --paper: var(--off-black);
+  --preview-placeholder: #262523;
 }
 
 *,
@@ -258,7 +260,35 @@ body[data-fit="contain"] .stage {
   outline-offset: 4px;
 }
 
+/* --------------------------------------------------------------------------
+   First-visit loader: an ivory screen counting 001% → 100%
+   -------------------------------------------------------------------------- */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ivory);  /* always ivory, whatever the theme */
+  color: #000;
+  transition: opacity 700ms ease;
+}
+
+:root[data-loader="skip"] .loader { display: none; }
+.loader.is-done { opacity: 0; pointer-events: none; }
+
+.loader__count {
+  font-family: 'Times New Roman', TimesNewRomanPSMT, Tinos, serif;
+  font-size: 14vmin;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transform: scale(0.62, 1.75);  /* the stretched, condensed look of the site */
+  user-select: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .loader { transition: none; }
   :root { --theme-fade: 0ms; }
   :root { --fade: 0ms; }
   .stage svg a path,
