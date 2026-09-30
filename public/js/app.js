@@ -9,6 +9,8 @@
   const svgCache = new Map();
   let siteData = null;
   let renderToken = 0;
+  let pageAbort = null;
+  const pageSignal = () => pageAbort.signal;
 
   // ---- Routes -------------------------------------------------------------
   function matchRoute(pathname) {
@@ -125,23 +127,114 @@
       if (a) links.set(p.slug, a);
     }
 
-    // Hovering a discipline keeps its projects sharp and blurs the rest.
+    setupPreview(svg, data, links);
+
+    // Disciplines: hover previews, click selects (the word turns red).
+    // Projects outside the discipline blur and stop being clickable.
     // Which projects belong to which discipline lives in data/projects.json.
-    const clearDim = () => links.forEach((a) => a.classList.remove('is-dimmed'));
+    const disciplines = new Map();
+    let selected = null;
+
+    const showDiscipline = (d) => {
+      const mapped = d && d.projects && d.projects.length > 0;
+      links.forEach((a, slug) => {
+        const dimmed = mapped && !d.projects.includes(slug);
+        a.classList.toggle('is-dimmed', dimmed);
+        if (dimmed) {
+          a.setAttribute('tabindex', '-1');
+          a.setAttribute('aria-disabled', 'true');
+        } else {
+          a.removeAttribute('tabindex');
+          a.removeAttribute('aria-disabled');
+        }
+      });
+    };
+
+    const select = (d) => {
+      selected = d;
+      disciplines.forEach((g, id) => g.classList.toggle('is-active', !!d && id === d.id));
+      showDiscipline(d);
+    };
 
     for (const d of data.disciplines) {
       const group = byId(svg, `discipline-${d.id}`);
       if (!group) continue;
       addHitArea(group);
       group.classList.add('discipline');
+      group.setAttribute('role', 'button');
+      group.setAttribute('tabindex', '0');
+      group.setAttribute('aria-label', d.label);
+      disciplines.set(d.id, group);
 
-      const focus = () => {
-        if (!d.projects || d.projects.length === 0) return; // not mapped yet
-        links.forEach((a, slug) => a.classList.toggle('is-dimmed', !d.projects.includes(slug)));
-      };
-      group.addEventListener('mouseenter', focus);
-      group.addEventListener('mouseleave', clearDim);
+      group.addEventListener('mouseenter', () => showDiscipline(d));
+      group.addEventListener('mouseleave', () => showDiscipline(selected));
+      const toggle = () => select(selected === d ? null : d);
+      group.addEventListener('click', toggle);
+      group.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
     }
+
+    // Clicking empty space or pressing Esc clears the selection.
+    svg.addEventListener('click', (e) => {
+      if (!e.target.closest('.discipline, a')) select(null);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') select(null);
+    }, { signal: pageSignal() });
+  }
+
+  // Hovering a project shows a large image in the middle of the Work page,
+  // underneath "THIS IS WHAT I DO". The box is centred on the title and
+  // fills the space between the two columns.
+  function setupPreview(svg, data, links) {
+    const title = byId(svg, 'Work_page');
+    const columns = byId(svg, 'Disciplines');
+    const menu = byId(svg, 'Menu_bars');
+    if (!title || !columns || !menu || links.size === 0) return;
+
+    const GUTTER = 28; // design units (the SVG is 1280 × 1024)
+    const t = title.getBBox();
+    const cx = t.x + t.width / 2;
+    const cy = t.y + t.height / 2;
+    const leftEdge = columns.getBBox().x + columns.getBBox().width + GUTTER;
+    const rightEdge = Math.min(...[...links.values()].map((a) => a.getBBox().x)) - GUTTER;
+    const topEdge = menu.getBBox().y + menu.getBBox().height + GUTTER;
+    const halfW = Math.min(cx - leftEdge, rightEdge - cx);
+    const halfH = cy - topEdge;
+
+    const vb = svg.viewBox.baseVal;
+    const preview = document.createElement('div');
+    preview.className = 'work-preview';
+    preview.setAttribute('aria-hidden', 'true');
+    Object.assign(preview.style, {
+      left: `${((cx - halfW - vb.x) / vb.width) * 100}%`,
+      top: `${((cy - halfH - vb.y) / vb.height) * 100}%`,
+      width: `${((halfW * 2) / vb.width) * 100}%`,
+      height: `${((halfH * 2) / vb.height) * 100}%`,
+    });
+    const img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    preview.appendChild(img);
+    stage.insertBefore(preview, svg); // underneath the SVG, so the title sits on top
+
+    const bySlug = new Map(data.projects.map((p) => [p.slug, p]));
+    links.forEach((a, slug) => {
+      const src = bySlug.get(slug).preview;
+      if (src) new Image().src = src; // preload
+      const show = () => {
+        if (a.classList.contains('is-dimmed')) return hide();
+        if (src) img.src = src; else img.removeAttribute('src');
+        preview.classList.toggle('has-image', !!src);
+        preview.classList.add('is-visible');
+      };
+      const hide = () => preview.classList.remove('is-visible');
+      a.addEventListener('mouseenter', show);
+      a.addEventListener('mouseleave', hide);
+      a.addEventListener('focus', show);
+      a.addEventListener('blur', hide);
+    });
   }
 
   function setupProject(svg, project) {
@@ -247,6 +340,8 @@
     ]);
     if (token !== renderToken) return; // a newer navigation won
 
+    if (pageAbort) pageAbort.abort();
+    pageAbort = new AbortController();
     stage.replaceChildren(svg);
     stage.dataset.page = route.page;
     document.title = route.title;
@@ -271,6 +366,7 @@
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a');
     if (!a) return;
+    if (a.classList.contains('is-dimmed')) { e.preventDefault(); return; }
     const href = a.getAttribute('href');
     if (!href || !href.startsWith('/') || href === '/cv') return;
     if (a.getAttribute('target') === '_blank') return;

@@ -8,6 +8,8 @@
   --paper: #fff;
   --hover: #ff0000;          /* project titles on hover */
   --dim-opacity: 0.35;       /* projects outside a hovered discipline */
+  --preview-placeholder: #d9d9d9;  /* middle box on the Work page until images are added */
+  --cv-spin: 40s;            /* one full turn of the CV ring */
   --fade: 180ms;
 }
 
@@ -94,6 +96,51 @@ body[data-fit="contain"] .stage {
 .stage svg .project-link.is-dimmed {
   opacity: var(--dim-opacity);
   filter: url(#dim-blur);
+  cursor: default;           /* blurred projects can't be clicked (see app.js) */
+}
+
+.stage svg .project-link.is-dimmed path { fill: var(--ink); }
+
+.stage svg .discipline { cursor: pointer; outline: none; }
+.stage svg .discipline path { transition: fill 120ms ease; }
+.stage svg .discipline.is-active path { fill: var(--hover); }
+.stage svg .discipline:focus-visible .hit {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+/* Big image in the middle of the Work page, under "THIS IS WHAT I DO" */
+.work-preview {
+  position: absolute;
+  background: var(--preview-placeholder);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease;
+  overflow: hidden;
+}
+
+.work-preview.is-visible { opacity: 1; }
+.work-preview.has-image { background: transparent; }
+
+.work-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.work-preview:not(.has-image) img { display: none; }
+
+/* --------------------------------------------------------------------------
+   Home: the CV ring turns slowly
+   -------------------------------------------------------------------------- */
+@keyframes cv-spin { to { transform: rotate(360deg); } }
+
+.stage svg #cv-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cv-spin var(--cv-spin) linear infinite;
 }
 
 /* --------------------------------------------------------------------------
@@ -136,5 +183,7 @@ body[data-fit="contain"] .stage {
 @media (prefers-reduced-motion: reduce) {
   :root { --fade: 0ms; }
   .stage svg a path,
-  .stage svg .project-link { transition: none; }
+  .stage svg .project-link,
+  .work-preview { transition: none; }
+  .stage svg #cv-ring { animation: none; }
 }

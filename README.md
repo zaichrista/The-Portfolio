@@ -60,7 +60,17 @@ In `data/projects.json`, add project slugs to a discipline:
 { "id": "strategy", "label": "Strategy", "projects": ["void-studios", "zc-studios", "the-reach-brasserie"] }
 ```
 
-Hovering that discipline on the Work page keeps those projects sharp and blurs the rest. Disciplines with an empty list do nothing on hover.
+Hovering a discipline previews it; **clicking** selects it (the word turns red). Its projects stay sharp; the rest blur and can't be clicked. Click it again, click empty space, or press Esc to clear. Disciplines with an empty list don't blur anything.
+
+## Work page preview image
+
+Hovering a project shows a large image in the middle of the Work page, underneath "THIS IS WHAT I DO". Set it per project:
+
+```json
+{ "slug": "bekaa", "preview": "/assets/projects/bekaa/preview.jpg", "media": [] }
+```
+
+With no `preview`, a grey placeholder box shows.
 
 ## CV
 
@@ -69,7 +79,7 @@ Save your CV as `public/assets/cv/cv.pdf`. The CV circle on the home page opens 
 ## Settings
 
 - **Stretch vs. keep proportions**: in `public/index.html`, `data-fit="stretch"` stretches the design to any window; change it to `data-fit="contain"` to keep the 1280 × 1024 proportions, centred.
-- **Hover colour, blur strength, fade speed**: variables at the top of `public/css/style.css`.
+- **Hover colour, blur strength, preview placeholder colour, CV ring speed, fade speed**: variables at the top of `public/css/style.css`.
 
 ## Structure
 

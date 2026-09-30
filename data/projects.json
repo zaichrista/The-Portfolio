@@ -2,23 +2,23 @@
   "disciplines": [
     { "id": "thinking",       "label": "Thinking",       "projects": [] },
     { "id": "strategy",       "label": "Strategy",       "projects": [] },
-    { "id": "fashion-design", "label": "Fashion design", "projects": [] },
+    { "id": "fashion-design", "label": "Fashion design", "projects": ["zaira-christa-fw22", "zaira-christa-ss23"] },
     { "id": "graphic-design", "label": "Graphic Design", "projects": [] },
     { "id": "social-media",   "label": "Social Media",   "projects": [] },
     { "id": "writing",        "label": "Writing",        "projects": [] }
   ],
 
   "projects": [
-    { "slug": "void-studios",            "title": "Void Studios",            "workLabelId": "Void_Studios",            "media": [] },
-    { "slug": "sonic-anti-intimacy",     "title": "Sonic Anti-Intimacy",     "workLabelId": "Sonic_Anti_Intimacy",     "media": [] },
-    { "slug": "the-oxford-fashion-gala", "title": "The Oxford Fashion Gala", "workLabelId": "The_Oxford_Fashion_Gala", "media": [] },
-    { "slug": "zaira-christa-fw22",      "title": "Zaira Christa FW22",      "workLabelId": "Zaira_Christa_FW22",      "media": [] },
-    { "slug": "zaira-christa-ss23",      "title": "Zaira Christa SS23",      "workLabelId": "Zaira_Christa_SS23",      "media": [] },
-    { "slug": "muni",                    "title": "Muni",                    "workLabelId": "Muni",                    "media": [] },
-    { "slug": "tokyo-drift",             "title": "Tokyo Drift: The Sonic Graffiti of the Tokyoite Underground", "workLabelId": "Tokyo_Drift", "media": [] },
-    { "slug": "zc-studios",              "title": "ZC Studios",              "workLabelId": "ZC_Studios",              "media": [] },
-    { "slug": "the-reach-brasserie",     "title": "The Reach Brasserie",     "workLabelId": "The_Reach_Brasserie",     "media": [] },
-    { "slug": "tagging-the-body",        "title": "Tagging the Body: Sound, Clothing, and Affect in London Clubs", "workLabelId": "Tagging_the_Body", "media": [] },
-    { "slug": "bekaa",                   "title": "Bekaa",                   "workLabelId": "Bekaa",                   "media": [] }
+    { "slug": "void-studios",            "title": "Void Studios",            "workLabelId": "Void_Studios",            "preview": "", "media": [] },
+    { "slug": "sonic-anti-intimacy",     "title": "Sonic Anti-Intimacy",     "workLabelId": "Sonic_Anti_Intimacy",     "preview": "", "media": [] },
+    { "slug": "the-oxford-fashion-gala", "title": "The Oxford Fashion Gala", "workLabelId": "The_Oxford_Fashion_Gala", "preview": "", "media": [] },
+    { "slug": "zaira-christa-fw22",      "title": "Zaira Christa FW22",      "workLabelId": "Zaira_Christa_FW22",      "preview": "", "media": [] },
+    { "slug": "zaira-christa-ss23",      "title": "Zaira Christa SS23",      "workLabelId": "Zaira_Christa_SS23",      "preview": "", "media": [] },
+    { "slug": "muni",                    "title": "Muni",                    "workLabelId": "Muni",                    "preview": "", "media": [] },
+    { "slug": "tokyo-drift",             "title": "Tokyo Drift: The Sonic Graffiti of the Tokyoite Underground", "workLabelId": "Tokyo_Drift", "preview": "", "media": [] },
+    { "slug": "zc-studios",              "title": "ZC Studios",              "workLabelId": "ZC_Studios",              "preview": "", "media": [] },
+    { "slug": "the-reach-brasserie",     "title": "The Reach Brasserie",     "workLabelId": "The_Reach_Brasserie",     "preview": "", "media": [] },
+    { "slug": "tagging-the-body",        "title": "Tagging the Body: Sound, Clothing, and Affect in London Clubs", "workLabelId": "Tagging_the_Body", "preview": "", "media": [] },
+    { "slug": "bekaa",                   "title": "Bekaa",                   "workLabelId": "Bekaa",                   "preview": "", "media": [] }
   ]
 }
