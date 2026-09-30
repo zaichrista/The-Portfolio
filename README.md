@@ -78,11 +78,19 @@ Save your CV as `public/assets/cv/cv.pdf`. The CV circle on the home page opens 
 
 ## Day / night
 
-The sun in the top-left corner switches the site to night mode (it becomes a moon): ivory and off-black swap everywhere, including the empty placeholder boxes. Photos and videos are never inverted. The choice is remembered in the visitor's browser. Night colours are the `:root[data-theme="night"]` block at the top of `public/css/style.css`.
+The sun in the top-left corner switches the site to night mode (it becomes a moon): ivory and off-black swap everywhere, including the empty placeholder boxes. Photos and videos are never inverted. The choice is remembered in the visitor's browser. Night colours are the `:root[data-mode="night"]` block at the top of `public/css/style.css`.
 
 ## Loader
 
 On a visitor's first load, an ivory screen counts `001%` → `100%` in stretched Times New Roman (about 4 seconds), then the site fades in. It plays once per browser session. Speed: `stepDelay` in `runLoader` (`public/js/app.js`). Size and stretch: `.loader__count` in `public/css/style.css`.
+
+## Static build (no server)
+
+```bash
+npm run build:static
+```
+
+Packs the whole site (pages, data, images, code) into one file, `dist/index.html`, that works with no server. Use it for preview links or static hosts like GitHub Pages or Netlify. In this mode pages switch without changing the URL, and the CV link is hidden.
 
 ## Settings
 

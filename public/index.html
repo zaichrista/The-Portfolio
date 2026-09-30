@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/css/style.css">
   <script>
     // Apply the saved day/night theme before anything draws (no flash).
-    try { if (localStorage.getItem('theme') === 'night') document.documentElement.dataset.theme = 'night'; } catch (e) {}
+    try { if (localStorage.getItem('theme') === 'night') document.documentElement.dataset.mode = 'night'; } catch (e) {}
     // The loader plays once per visit, not on every refresh.
     try { if (sessionStorage.getItem('loaded')) document.documentElement.dataset.loader = 'skip'; } catch (e) {}
   </script>

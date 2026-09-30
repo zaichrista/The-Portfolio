@@ -8,6 +8,7 @@
   --off-black: #0d0d0d;
   --ink: #000;
   --paper: var(--ivory);
+  color-scheme: light;
   --hover: #ff0000;          /* project titles on hover */
   --dim-opacity: 0.35;       /* projects outside a hovered discipline */
   --preview-placeholder: #dcd8cf;  /* middle box on the Work page until images are added */
@@ -17,9 +18,10 @@
 }
 
 /* Night mode: every colour flips except photographs and videos. */
-:root[data-theme="night"] {
+:root[data-mode="night"] {
   --ink: #fff;
   --paper: var(--off-black);
+  color-scheme: dark;
   --preview-placeholder: #262523;
 }
 
@@ -250,8 +252,8 @@ body[data-fit="contain"] .stage {
 
 .theme-toggle__moon { opacity: 0; transform: rotate(-60deg) scale(0.6); }
 
-:root[data-theme="night"] .theme-toggle__sun { opacity: 0; transform: rotate(60deg) scale(0.6); }
-:root[data-theme="night"] .theme-toggle__moon { opacity: 1; transform: none; }
+:root[data-mode="night"] .theme-toggle__sun { opacity: 0; transform: rotate(60deg) scale(0.6); }
+:root[data-mode="night"] .theme-toggle__moon { opacity: 1; transform: none; }
 
 .theme-toggle:hover { color: var(--hover); }
 

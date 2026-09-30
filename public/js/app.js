@@ -7,6 +7,11 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const stage = document.getElementById('stage');
   const svgCache = new Map();
+  // Set by scripts/build-static.js: the whole site packed into one file,
+  // with no server, so pages are switched in memory instead of by URL.
+  const STATIC = window.PORTFOLIO_STATIC || null;
+  let staticPath = '/';
+  const currentPath = () => (STATIC ? staticPath : location.pathname);
   let siteData = null;
   let renderToken = 0;
   let pageAbort = null;
@@ -25,6 +30,7 @@
 
   // ---- Data ---------------------------------------------------------------
   async function getSiteData() {
+    if (!siteData && STATIC) siteData = STATIC.data;
     if (!siteData) {
       const res = await fetch('/api/site');
       siteData = await res.json();
@@ -33,6 +39,9 @@
   }
 
   async function getSvgText(url) {
+    if (STATIC) {
+      return url in STATIC.svgs ? STATIC.svgs[url] : Promise.reject(new Error(`Missing ${url}`));
+    }
     if (!svgCache.has(url)) {
       svgCache.set(url, fetch(url).then((r) => {
         if (!r.ok) throw new Error(`Could not load ${url}`);
@@ -101,7 +110,7 @@
 
   function setupHome(svg) {
     setupMenu(svg);
-    linkGroup(svg, 'home-cv', '/cv', { className: 'cv-link', label: 'CV', newTab: true });
+    if (!STATIC || STATIC.cv) linkGroup(svg, 'home-cv', STATIC ? STATIC.cv : '/cv', { className: 'cv-link', label: 'CV', newTab: true });
   }
 
   function setupAbout(svg) {
@@ -324,7 +333,7 @@
 
   async function render({ animate = true } = {}) {
     const token = ++renderToken;
-    const route = matchRoute(location.pathname);
+    const route = matchRoute(currentPath());
     if (!route) return navigate('/', { replace: true });
 
     const data = await getSiteData();
@@ -358,8 +367,9 @@
 
   function navigate(href, { replace = false } = {}) {
     const url = new URL(href, location.origin);
-    if (url.pathname === location.pathname && !replace) return;
-    history[replace ? 'replaceState' : 'pushState']({}, '', url.pathname);
+    if (url.pathname === currentPath() && !replace) return;
+    if (STATIC) staticPath = url.pathname;
+    else history[replace ? 'replaceState' : 'pushState']({}, '', url.pathname);
     render();
   }
 
@@ -371,6 +381,7 @@
     const href = a.getAttribute('href');
     if (!href || !href.startsWith('/') || href === '/cv') return;
     if (a.getAttribute('target') === '_blank') return;
+    if (STATIC) { e.preventDefault(); navigate(href); return; }
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
     navigate(href);
@@ -381,14 +392,14 @@
   // ---- Day / night ----------------------------------------------------------
   const toggle = document.getElementById('theme-toggle');
   const syncToggle = () => {
-    const night = document.documentElement.dataset.theme === 'night';
+    const night = document.documentElement.dataset.mode === 'night';
     toggle.setAttribute('aria-pressed', String(night));
     toggle.setAttribute('aria-label', night ? 'Switch to day mode' : 'Switch to night mode');
   };
   toggle.addEventListener('click', () => {
-    const night = document.documentElement.dataset.theme !== 'night';
-    if (night) document.documentElement.dataset.theme = 'night';
-    else delete document.documentElement.dataset.theme;
+    const night = document.documentElement.dataset.mode !== 'night';
+    if (night) document.documentElement.dataset.mode = 'night';
+    else delete document.documentElement.dataset.mode;
     try { localStorage.setItem('theme', night ? 'night' : 'day'); } catch (e) {}
     syncToggle();
   });
