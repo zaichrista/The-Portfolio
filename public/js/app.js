@@ -104,11 +104,22 @@
     return { x, y, w: r - x, h: b - y };
   }
 
+  // Measures where a piece is actually drawn in the design, including any
+  // transform on the element itself (Illustrator positions text this way).
+  function drawnBox(n) {
+    const b = n.getBBox();
+    const own = n.transform && n.transform.baseVal.consolidate();
+    if (!own) return { x: b.x, y: b.y, w: b.width, h: b.height };
+    const m = own.matrix;
+    const pts = [[b.x, b.y], [b.x + b.width, b.y], [b.x, b.y + b.height], [b.x + b.width, b.y + b.height]]
+      .map(([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]);
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  }
+
   function measureNodes(nodes, pad = 0) {
-    const u = unionBox(nodes.map((n) => {
-      const b = n.getBBox();
-      return { x: b.x, y: b.y, w: b.width, h: b.height };
-    }));
+    const u = unionBox(nodes.map(drawnBox));
     return { x: u.x - pad, y: u.y - pad, w: u.w + pad * 2, h: u.h + pad * 2 };
   }
 
@@ -201,7 +212,7 @@
     const hasCv = !STATIC || STATIC.cv;
     const cv = makeBlock(A, hasCv ? 'a' : 'div', [A.byId('home-cv')], {
       pad: 4,
-      className: 'cv-link',
+      className: 'cv-link keep-shape anchor-center',
       label: hasCv ? 'CV (opens in a new tab)' : '',
       attrs: hasCv
         ? { href: STATIC ? STATIC.cv : '/cv', target: '_blank', rel: 'noopener' }
@@ -228,7 +239,7 @@
     if (image) {
       const holder = image.parentNode;
       const box = measureNodes([holder]);
-      photo = h('figure', { class: 'block about-photo' }, [
+      photo = h('figure', { class: 'block about-photo keep-shape anchor-right' }, [
         h('img', {
           src: image.getAttribute('href') || image.getAttributeNS(XLINK_NS, 'href'),
           alt: copy.photoAlt,
@@ -419,7 +430,7 @@
   // ---- Project ------------------------------------------------------------
   function buildProject(A, data, project) {
     const close = makeBlock(A, 'a', [A.byId('close-button')], {
-      pad: 8, className: 'close-link', label: 'Back to work', attrs: { href: '/work' },
+      pad: 8, className: 'close-link keep-shape anchor-right', label: 'Back to work', attrs: { href: '/work' },
     });
     const header = h('header', { class: 'site-header site-header--project' }, [close]);
 
@@ -436,7 +447,7 @@
       return (spans.length ? spans : [t]).map((s) => s.textContent.trim()).filter(Boolean);
     });
     const [year = [], roles = [], description = []] = lines;
-    const textArt = makeBlock(A, 'div', texts, { pad: 4, className: 'project-text canvas-only', attrs: { 'aria-hidden': 'true' } });
+    const textArt = makeBlock(A, 'div', texts, { pad: 4, className: 'project-text canvas-only keep-shape', attrs: { 'aria-hidden': 'true' } });
     const info = h('div', { class: 'flow-text project-info' }, [
       year.length ? h('p', { class: 'project-year', text: year.join(' ') }) : null,
       roles.length ? h('ul', { class: 'project-roles', 'aria-label': 'Roles' }, roles.map((r) => h('li', { text: r }))) : null,
@@ -464,7 +475,7 @@
     primary.remove();
     secondary.remove();
 
-    const gallery = h('section', { class: 'block gallery', 'aria-label': `${project.title}: images` });
+    const gallery = h('section', { class: 'block gallery keep-shape anchor-right', 'aria-label': `${project.title}: images` });
     placeAt(gallery, box, A);
     gallery.style.setProperty('--gap', (s.y - (p.y + p.h)) / total);
 

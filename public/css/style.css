@@ -311,14 +311,23 @@ button.block { -webkit-tap-highlight-color: transparent; }
     height: 100%;
   }
 
-  /* The CV circle never stretches: it stays round, centred on its spot in
-     the design, sized by whichever direction is tighter. */
-  .cv-link {
-    --cv-size: min(calc(var(--w) / var(--dw) * 100cqw), calc(var(--h) / var(--dh) * 100cqh));
+  /* Pieces that never stretch: the CV circle, the project text and ✕,
+     photos and their frames. They scale evenly (by whichever direction is
+     tighter) and stay anchored to their place in the design. */
+  .keep-shape {
+    --u: min(calc(100cqw / var(--dw)), calc(100cqh / var(--dh)));
+    width: calc(var(--w) * var(--u));
+    height: calc(var(--h) * var(--u));
+  }
+
+  .keep-shape.anchor-right {       /* top-right corner stays put */
+    left: calc((var(--x) + var(--w)) / var(--dw) * 100%);
+    transform: translateX(-100%);
+  }
+
+  .keep-shape.anchor-center {      /* centre stays put */
     left: calc((var(--x) + var(--w) / 2) / var(--dw) * 100%);
     top: calc((var(--y) + var(--h) / 2) / var(--dh) * 100%);
-    width: var(--cv-size);
-    height: var(--cv-size);
     transform: translate(-50%, -50%);
   }
 
