@@ -271,12 +271,23 @@
       disciplines.filter(Boolean).map((b) => h('div', { class: 'cell' }, [b])));
     setSharedWidth(disciplineGrid, disciplines);
 
-    const projects = data.projects.map((p) =>
-      makeBlock(A, 'a', [A.byId(p.workLabelId)], {
+    const projects = data.projects.map((p) => {
+      const group = A.byId(p.workLabelId);
+      const centred = group ? centredLines(group) : null;
+      const link = makeBlock(A, 'a', [group], {
         className: 'project-link',
         label: p.title,
         attrs: { href: `/work/${p.slug}`, 'data-slug': p.slug },
-      }));
+      });
+      if (link && centred) {
+        const art = link.querySelector('.art');
+        art.classList.add('canvas-only');
+        const copy = artFor([centred], link.box);
+        copy.classList.add('flow-only');
+        link.appendChild(copy);
+      }
+      return link;
+    });
     const list = h('ul', { class: 'project-list' },
       projects.filter(Boolean).map((a) => h('li', {}, [a])));
     setSharedWidth(list, projects);
@@ -316,11 +327,18 @@
     const nameBox = name ? measureNodes([name], 2) : null;
     const nameCopy = name ? name.cloneNode(true) : null;
 
-    const button = makeBlock(A, 'button', [group], {
-      className: 'discipline',
-      label: d.note ? `${d.label}: ${d.note}` : d.label,
-      attrs: { type: 'button', 'aria-pressed': 'false', 'data-id': d.id },
-    });
+    const label = d.note ? `${d.label}: ${d.note}` : d.label;
+    const button = d.href
+      ? makeBlock(A, 'a', [group], {
+        className: 'discipline discipline-link',
+        label: `${label} (opens in a new tab)`,
+        attrs: { href: d.href, target: '_blank', rel: 'noopener', 'data-id': d.id },
+      })
+      : makeBlock(A, 'button', [group], {
+        className: 'discipline',
+        label,
+        attrs: { type: 'button', 'aria-pressed': 'false', 'data-id': d.id },
+      });
     if (!name) return button;
 
     button.querySelector('.art').classList.add('canvas-only');
@@ -335,6 +353,41 @@
       ]),
     );
     return button;
+  }
+
+  // Project titles are drawn right-aligned. For the centred list on small
+  // screens, this makes a copy with each line of a multi-line title centred.
+  // Returns null for single-line titles, which need no change.
+  function centredLines(group) {
+    const paths = [...group.querySelectorAll('path')];
+    if (paths.length < 2) return null;
+    const items = paths.map((p, i) => {
+      const b = p.getBBox();
+      return { i, x: b.x, r: b.x + b.width, cy: b.y + b.height / 2 };
+    }).sort((a, b) => a.cy - b.cy);
+
+    // Letters on one line sit close together vertically; a jump means a new line.
+    const lines = [[items[0]]];
+    for (let k = 1; k < items.length; k++) {
+      if (items[k].cy - items[k - 1].cy > 12) lines.push([]);
+      lines[lines.length - 1].push(items[k]);
+    }
+    if (lines.length < 2) return null;
+
+    const left = Math.min(...items.map((it) => it.x));
+    const right = Math.max(...items.map((it) => it.r));
+    const mid = (left + right) / 2;
+    const copies = group.cloneNode(true).querySelectorAll('path');
+    const out = document.createElementNS(SVG_NS, 'g');
+    for (const line of lines) {
+      const lx = Math.min(...line.map((it) => it.x));
+      const lr = Math.max(...line.map((it) => it.r));
+      const g = document.createElementNS(SVG_NS, 'g');
+      g.setAttribute('transform', `translate(${mid - (lx + lr) / 2} 0)`);
+      for (const it of line) g.appendChild(copies[it.i]);
+      out.appendChild(g);
+    }
+    return out;
   }
 
   // The big image box in the middle of the Work page (large screens only):
@@ -483,7 +536,7 @@
       const d = byId.get(id);
       b.addEventListener('mouseenter', () => show(d));
       b.addEventListener('mouseleave', () => show(selected));
-      b.addEventListener('click', () => select(selected === d ? null : d));
+      if (b.tagName === 'BUTTON') b.addEventListener('click', () => select(selected === d ? null : d));
     });
 
     // Clicking empty space or pressing Esc clears the selection.

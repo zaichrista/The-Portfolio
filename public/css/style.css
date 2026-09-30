@@ -150,7 +150,13 @@ button.block { -webkit-tap-highlight-color: transparent; }
 }
 
 .project-link:focus-visible .art path,
+.discipline-link:focus-visible .art path,
 .discipline[aria-pressed="true"] .art path { fill: var(--hover); }
+
+@media (hover: hover) {
+  .discipline-link:hover .art path { fill: var(--hover); }
+  .discipline-link:hover .discipline-note { color: var(--hover); }
+}
 
 /* Projects outside the selected discipline: blurred, not clickable. */
 .project-link { transition: opacity 220ms ease, filter 220ms ease; }
@@ -287,6 +293,7 @@ button.block { -webkit-tap-highlight-color: transparent; }
   .page {
     position: absolute;
     inset: 0;
+    container-type: size;
   }
 
   .block {
@@ -302,6 +309,17 @@ button.block { -webkit-tap-highlight-color: transparent; }
     inset: 0;
     width: 100%;
     height: 100%;
+  }
+
+  /* The CV circle never stretches: it stays round, centred on its spot in
+     the design, sized by whichever direction is tighter. */
+  .cv-link {
+    --cv-size: min(calc(var(--w) / var(--dw) * 100cqw), calc(var(--h) / var(--dh) * 100cqh));
+    left: calc((var(--x) + var(--w) / 2) / var(--dw) * 100%);
+    top: calc((var(--y) + var(--h) / 2) / var(--dh) * 100%);
+    width: var(--cv-size);
+    height: var(--cv-size);
+    transform: translate(-50%, -50%);
   }
 
   .flow-only { display: none !important; }
@@ -569,17 +587,18 @@ button.block { -webkit-tap-highlight-color: transparent; }
     transition: color 120ms ease;
   }
 
-  .discipline[aria-pressed="true"] .discipline-note { color: var(--hover); }
+  .discipline[aria-pressed="true"] .discipline-note,
+  .discipline-link:focus-visible .discipline-note { color: var(--hover); }
 
   .project-list {
     container-type: inline-size;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;   /* right-aligned, as in the design */
+    align-items: center;
     gap: 6px;
   }
 
-  .project-list li { display: flex; justify-content: flex-end; width: 100%; }
+  .project-list li { display: flex; justify-content: center; width: 100%; }
 
   .project-link {
     width: min(calc(var(--w) * 1.15px), calc(var(--w) / var(--ref) * 100cqi));

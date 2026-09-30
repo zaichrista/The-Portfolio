@@ -20,12 +20,12 @@
   },
 
   "disciplines": [
-    { "id": "thinking",       "label": "Thinking", "note": "Thank you, Oxford degree",       "projects": [] },
-    { "id": "strategy",       "label": "Strategy", "note": "Creative ofc",       "projects": [] },
+    { "id": "thinking",       "label": "Thinking", "note": "Thank you, Oxford degree",       "projects": ["sonic-anti-intimacy", "tokyo-drift", "tagging-the-body"] },
+    { "id": "strategy",       "label": "Strategy", "note": "Creative ofc",       "projects": ["void-studios", "muni", "zc-studios", "bekaa", "the-reach-brasserie"] },
     { "id": "fashion-design", "label": "Fashion design", "note": "LFW 2022 | Vogue | Vanity Fair", "projects": ["zaira-christa-fw22", "zaira-christa-ss23"] },
-    { "id": "graphic-design", "label": "Graphic Design", "note": "A logo designer since 2017", "projects": [] },
-    { "id": "social-media",   "label": "Social Media", "note": "Yes my screen time is embarrassing",   "projects": [] },
-    { "id": "writing",        "label": "Writing", "note": "Follow my Substack?",        "projects": [] }
+    { "id": "graphic-design", "label": "Graphic Design", "note": "A logo designer since 2017", "projects": ["void-studios", "muni", "bekaa"] },
+    { "id": "social-media",   "label": "Social Media", "note": "Yes my screen time is embarrassing",   "projects": ["the-reach-brasserie"] },
+    { "id": "writing",        "label": "Writing", "note": "Follow my Substack?",        "href": "https://zaiinprogress.substack.com", "projects": [] }
   ],
 
   "projects": [
