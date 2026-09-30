@@ -84,7 +84,7 @@ Images fill the black boxes from the design and the image column scrolls on its 
 - `"size": 0.6`: a custom height, as a share of the visible column
 - `"fit": "contain"`: show the whole image instead of cropping to fill
 
-With no media listed, the black placeholders show.
+With no media listed, the black placeholders show. To show no images at all on a project page, add `"gallery": false` to that project.
 
 ## Linking disciplines to projects
 
