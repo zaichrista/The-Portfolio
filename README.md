@@ -76,6 +76,10 @@ With no `preview`, a grey placeholder box shows.
 
 Save your CV as `public/assets/cv/cv.pdf`. The CV circle on the home page opens it in a new tab.
 
+## Day / night
+
+The sun in the top-left corner switches the site to night mode (it becomes a moon): black and white swap everywhere, including the empty placeholder boxes. Photos and videos are never inverted. The choice is remembered in the visitor's browser. Night colours are the `:root[data-theme="night"]` block at the top of `public/css/style.css`.
+
 ## Settings
 
 - **Stretch vs. keep proportions**: in `public/index.html`, `data-fit="stretch"` stretches the design to any window; change it to `data-fit="contain"` to keep the 1280 × 1024 proportions, centred.

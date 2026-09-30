@@ -290,6 +290,7 @@
       fig.style.flex = `0 0 ${size * 100}%`;
 
       if (item.src) {
+        fig.classList.add('has-media');
         const isVideo = /\.(mp4|webm|mov)$/i.test(item.src);
         const el = document.createElement(isVideo ? 'video' : 'img');
         el.src = item.src;
@@ -376,6 +377,22 @@
   });
 
   window.addEventListener('popstate', () => render());
+
+  // ---- Day / night ----------------------------------------------------------
+  const toggle = document.getElementById('theme-toggle');
+  const syncToggle = () => {
+    const night = document.documentElement.dataset.theme === 'night';
+    toggle.setAttribute('aria-pressed', String(night));
+    toggle.setAttribute('aria-label', night ? 'Switch to day mode' : 'Switch to night mode');
+  };
+  toggle.addEventListener('click', () => {
+    const night = document.documentElement.dataset.theme !== 'night';
+    if (night) document.documentElement.dataset.theme = 'night';
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem('theme', night ? 'night' : 'day'); } catch (e) {}
+    syncToggle();
+  });
+  syncToggle();
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && stage.dataset.page === 'project') navigate('/work');
