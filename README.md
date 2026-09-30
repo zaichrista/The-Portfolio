@@ -124,7 +124,7 @@ On a visitor's first load, an ivory screen counts `001%` → `100%` in stretched
 npm run build:static
 ```
 
-Packs the whole site (pages, data, images, code) into one file, `dist/index.html`, that works with no server. Use it for preview links or static hosts like GitHub Pages or Netlify. In this mode pages switch without changing the URL, and the CV link is hidden.
+Packs the whole site (pages, data, images, code) into one file, `dist/index.html`, that works with no server. Use it for preview links or static hosts like GitHub Pages or Netlify. In this mode pages switch without changing the URL. If `public/assets/cv/cv.pdf` exists it is copied to `dist/cv.pdf`, and the CV circle links to it; upload both files together.
 
 ## Settings
 

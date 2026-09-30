@@ -37,7 +37,11 @@ for (const f of fs.readdirSync(path.join(PUBLIC, 'svg', 'projects'))) {
   if (f.endsWith('.svg')) svgs[`/svg/projects/${f}`] = read(`svg/projects/${f}`);
 }
 
-const payload = JSON.stringify({ data, svgs, cv: null }).replace(/<\//g, '<\\/');
+// The CV travels next to the page as its own file (dist/cv.pdf).
+const CV_SRC = path.join(PUBLIC, 'assets', 'cv', 'cv.pdf');
+const hasCv = fs.existsSync(CV_SRC);
+
+const payload = JSON.stringify({ data, svgs, cv: hasCv ? 'cv.pdf' : null }).replace(/<\//g, '<\\/');
 
 // Reuse index.html, swapping the external CSS/JS for inline copies.
 let html = read('index.html')
@@ -48,4 +52,5 @@ let html = read('index.html')
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const out = path.join(OUT_DIR, 'index.html');
 fs.writeFileSync(out, html);
+if (hasCv) fs.copyFileSync(CV_SRC, path.join(OUT_DIR, 'cv.pdf'));
 console.log(`Built ${path.relative(ROOT, out)} (${(fs.statSync(out).size / 1024 / 1024).toFixed(2)} MB)`);
