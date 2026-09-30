@@ -177,7 +177,10 @@ button.block { -webkit-tap-highlight-color: transparent; }
 }
 
 /* Work: big image in the middle, under "THIS IS WHAT I DO" */
+.page .work-title { z-index: 2; }  /* the title always sits above the image */
+
 .work-preview {
+  z-index: 1;
   background: var(--preview-placeholder);
   opacity: 0;
   pointer-events: none;
