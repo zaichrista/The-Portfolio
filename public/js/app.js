@@ -539,6 +539,7 @@
     const total = box.h;
     primary.remove();
     secondary.remove();
+    if (project.gallery === false) return null; // this project has no images
 
     const gallery = h('section', { class: 'block gallery', 'aria-label': `${project.title}: images` });
     placeAt(gallery, box, A);
