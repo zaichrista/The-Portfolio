@@ -219,31 +219,17 @@
 
   // ---- Hero title flash -----------------------------------------------------
   // Every 1 to 1.5 seconds one letter of the title cuts, with no transition,
-  // to a huge rainbow calligraphic version of itself for 0.2s, then cuts back.
+  // to a calligraphic version of itself in one rainbow colour for 0.2s, then cuts back.
   // The same letter is never picked twice in a row.
   const FLASH_MS = 200;
   const FLASH_GAP = [1000, 1500];
   const RAINBOW = ['#ff2d55', '#ff9500', '#ffd60a', '#34c759', '#00c7ff', '#5856ff', '#c644fc'];
-  const FLASH_FONT = "'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', cursive";
 
   // Draws a hidden script-letter overlay for each letter, centred on it.
   function addTitleFlash(title, letters, boxes) {
     const art = title.querySelector('svg.art');
     const chars = [...letters];
     if (!art || chars.length !== boxes.length) return;
-
-    const id = 'title-rainbow';
-    const defs = document.createElementNS(SVG_NS, 'defs');
-    const grad = document.createElementNS(SVG_NS, 'linearGradient');
-    grad.setAttribute('id', id);
-    RAINBOW.forEach((c, i) => {
-      const stop = document.createElementNS(SVG_NS, 'stop');
-      stop.setAttribute('offset', `${(i / (RAINBOW.length - 1)) * 100}%`);
-      stop.setAttribute('stop-color', c);
-      grad.appendChild(stop);
-    });
-    defs.appendChild(grad);
-    art.appendChild(defs);
 
     const originals = [...art.querySelectorAll('path')];
     const overlays = chars.map((ch, i) => {
@@ -252,7 +238,6 @@
       t.setAttribute('text-anchor', 'middle');
       t.setAttribute('x', boxes[i].x + boxes[i].width / 2);
       t.setAttribute('y', boxes[i].y + boxes[i].height);
-      t.setAttribute('font-size', boxes[i].height * 1.8);
       t.setAttribute('visibility', 'hidden');
       t.textContent = ch;
       art.appendChild(t);
@@ -272,11 +257,13 @@
           do { i = Math.floor(Math.random() * originals.length); } while (i === last);
           last = i;
           const t = overlays[i];
-          grad.setAttribute('gradientTransform', `rotate(${Math.round(Math.random() * 360)} .5 .5)`);
-          t.setAttribute('visibility', 'visible');
-          // Recentre on the letter it replaces (script glyphs vary in width).
-          const tb = t.getBBox();
           const b = boxes[i];
+          t.style.fill = RAINBOW[Math.floor(Math.random() * RAINBOW.length)];
+          t.setAttribute('font-size', b.height);
+          t.setAttribute('visibility', 'visible');
+          // Same width as the letter it replaces, then centred on it.
+          t.setAttribute('font-size', b.height * (b.width / t.getBBox().width));
+          const tb = t.getBBox();
           t.setAttribute('transform',
             `translate(${b.x + b.width / 2 - (tb.x + tb.width / 2)} ${b.y + b.height / 2 - (tb.y + tb.height / 2)})`);
           originals[i].setAttribute('visibility', 'hidden');

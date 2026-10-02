@@ -114,9 +114,8 @@ body {
   transition: fill var(--theme-fade) ease;
 }
 
-/* Hero title: the rainbow script letter that briefly replaces a letter. */
+/* Hero title: the coloured script letter that briefly replaces a letter. */
 .art text.flash-letter {
-  fill: url(#title-rainbow);
   font-family: 'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', cursive;
   transition: none;
   pointer-events: none;
