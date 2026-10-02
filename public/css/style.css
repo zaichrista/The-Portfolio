@@ -116,7 +116,7 @@ body {
 
 /* Hero title: the coloured script letter that briefly replaces a letter. */
 .art text.flash-letter {
-  font-family: 'Monsieur La Doulaise', 'Snell Roundhand', 'Apple Chancery', cursive;
+  font-family: 'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', cursive;
   transition: none;
   pointer-events: none;
 }

@@ -222,7 +222,6 @@
   // to a calligraphic version of itself in one rainbow colour for 0.2s, then cuts back.
   // The same letter is never picked twice in a row.
   const FLASH_MS = 200;
-  const FLASH_SCALE = 0.85; // script letter height relative to the letter it replaces
   const FLASH_GAP = [1000, 1500];
   const RAINBOW = ['#ff2d55', '#ff9500', '#ffd60a', '#34c759', '#00c7ff', '#5856ff', '#c644fc'];
 
@@ -250,7 +249,7 @@
       let last = -1;
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       (async () => {
-        try { await document.fonts.load(`40px 'Monsieur La Doulaise'`, 'Zaira Christa'); } catch (e) {}
+        try { await document.fonts.load(`40px 'Pinyon Script'`, 'Zaira Christa'); } catch (e) {}
         while (!signal.aborted) {
           await sleep(FLASH_GAP[0] + Math.random() * (FLASH_GAP[1] - FLASH_GAP[0]) - FLASH_MS);
           if (signal.aborted) return;
@@ -260,9 +259,10 @@
           const t = overlays[i];
           const b = boxes[i];
           t.style.fill = RAINBOW[Math.floor(Math.random() * RAINBOW.length)];
+          t.setAttribute('font-size', b.height);
           t.setAttribute('visibility', 'visible');
-          // Larger than the letter it replaces, centred on it.
-          t.setAttribute('font-size', b.height * FLASH_SCALE);
+          // Same width as the letter it replaces, then centred on it.
+          t.setAttribute('font-size', b.height * (b.width / t.getBBox().width));
           const tb = t.getBBox();
           t.setAttribute('transform',
             `translate(${b.x + b.width / 2 - (tb.x + tb.width / 2)} ${b.y + b.height / 2 - (tb.y + tb.height / 2)})`);
