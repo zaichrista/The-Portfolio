@@ -114,6 +114,13 @@ body {
   transition: fill var(--theme-fade) ease;
 }
 
+/* Hero title: the coloured script letter that briefly replaces a letter. */
+.art text.flash-letter {
+  font-family: 'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', cursive;
+  transition: none;
+  pointer-events: none;
+}
+
 .art [stroke="#000"] {
   stroke: var(--ink);
   transition: stroke var(--theme-fade) ease;
