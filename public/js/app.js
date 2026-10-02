@@ -217,12 +217,92 @@
   const heading = (A, node, label, className) =>
     makeBlock(A, 'h1', [node], { className: `page-title ${className}`, label, attrs: { tabindex: '-1' } });
 
+  // ---- Hero title flash -----------------------------------------------------
+  // Every 1 to 1.5 seconds one letter of the title cuts, with no transition,
+  // to a huge rainbow calligraphic version of itself for 0.2s, then cuts back.
+  // The same letter is never picked twice in a row.
+  const FLASH_MS = 200;
+  const FLASH_GAP = [1000, 1500];
+  const RAINBOW = ['#ff2d55', '#ff9500', '#ffd60a', '#34c759', '#00c7ff', '#5856ff', '#c644fc'];
+  const FLASH_FONT = "'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', cursive";
+
+  // Draws a hidden script-letter overlay for each letter, centred on it.
+  function addTitleFlash(title, letters, boxes) {
+    const art = title.querySelector('svg.art');
+    const chars = [...letters];
+    if (!art || chars.length !== boxes.length) return;
+
+    const id = 'title-rainbow';
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    const grad = document.createElementNS(SVG_NS, 'linearGradient');
+    grad.setAttribute('id', id);
+    RAINBOW.forEach((c, i) => {
+      const stop = document.createElementNS(SVG_NS, 'stop');
+      stop.setAttribute('offset', `${(i / (RAINBOW.length - 1)) * 100}%`);
+      stop.setAttribute('stop-color', c);
+      grad.appendChild(stop);
+    });
+    defs.appendChild(grad);
+    art.appendChild(defs);
+
+    const originals = [...art.querySelectorAll('path')];
+    const overlays = chars.map((ch, i) => {
+      const t = document.createElementNS(SVG_NS, 'text');
+      t.setAttribute('class', 'flash-letter');
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('x', boxes[i].x + boxes[i].width / 2);
+      t.setAttribute('y', boxes[i].y + boxes[i].height);
+      t.setAttribute('font-size', boxes[i].height * 1.8);
+      t.setAttribute('visibility', 'hidden');
+      t.textContent = ch;
+      art.appendChild(t);
+      return t;
+    });
+
+    title.startFlash = (signal) => {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      let last = -1;
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      (async () => {
+        try { await document.fonts.load(`40px 'Pinyon Script'`, 'Zaira Christa'); } catch (e) {}
+        while (!signal.aborted) {
+          await sleep(FLASH_GAP[0] + Math.random() * (FLASH_GAP[1] - FLASH_GAP[0]) - FLASH_MS);
+          if (signal.aborted) return;
+          let i;
+          do { i = Math.floor(Math.random() * originals.length); } while (i === last);
+          last = i;
+          const t = overlays[i];
+          grad.setAttribute('gradientTransform', `rotate(${Math.round(Math.random() * 360)} .5 .5)`);
+          t.setAttribute('visibility', 'visible');
+          // Recentre on the letter it replaces (script glyphs vary in width).
+          const tb = t.getBBox();
+          const b = boxes[i];
+          t.setAttribute('transform',
+            `translate(${b.x + b.width / 2 - (tb.x + tb.width / 2)} ${b.y + b.height / 2 - (tb.y + tb.height / 2)})`);
+          originals[i].setAttribute('visibility', 'hidden');
+          await sleep(FLASH_MS);
+          t.setAttribute('visibility', 'hidden');
+          originals[i].removeAttribute('visibility');
+        }
+      })();
+      signal.addEventListener('abort', () => {
+        overlays.forEach((t) => t.setAttribute('visibility', 'hidden'));
+        originals.forEach((p) => p.removeAttribute('visibility'));
+      });
+    };
+  }
+
   // ---- Home ---------------------------------------------------------------
   function buildHome(A, data) {
     const copy = data.pages.home;
     const header = mainMenu(A, 'home');
 
-    const title = heading(A, A.byId('home-title'), copy.title, 'home-title');
+    // Measured now, while the artwork is still laid out off-screen.
+    const titleNode = A.byId('home-title');
+    const letterBoxes = titleNode ? [...titleNode.querySelectorAll('path')].map((p) => p.getBBox()) : [];
+
+    const title = heading(A, titleNode, copy.title, 'home-title');
+    if (title) addTitleFlash(title, copy.title.replace(/\s+/g, '').toUpperCase(), letterBoxes);
     const taglineArt = makeBlock(A, 'div', [A.byId('home-tagline')], {
       className: 'home-tagline canvas-only', attrs: { 'aria-hidden': 'true' },
     });
@@ -690,6 +770,10 @@
     document.title = route.title;
 
     if (route.page === 'work') wireWork(page, data);
+    if (route.page === 'home') {
+      const t = page.querySelector('.home-title');
+      if (t && t.startFlash) t.startFlash(pageAbort.signal);
+    }
 
     stage.classList.remove('is-leaving');
     if (animate) {
